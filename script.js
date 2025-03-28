@@ -32,7 +32,7 @@ async function getCoordinates(address) {
 }
 
 async function getChargers(lat, lon, distance, fastOnly) {
-    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your real key here
+    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464";
     const url = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
     const response = await fetch(url);
     let chargers = await response.json();
@@ -68,29 +68,15 @@ async function showChargers() {
     }
 }
 
-// Get user's current location
-function getCurrentLocation() {
-    return new Promise((resolve, reject) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({ lat: position.coords.latitude, lon: position.coords.longitude });
-                },
-                (error) => {
-                    reject(error);
-                }
-            );
-        } else {
-            reject(new Error("Geolocation not supported"));
-        }
-    });
-}
-
-// Load map with current location or fallback
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const defaultAddress = urlParams.get('address');
-    
+    const distance = urlParams.get('distance') || document.getElementById("distance").value;
+    const fastOnly = urlParams.get('fastOnly') === 'true' || document.getElementById("fastOnly").checked;
+
+    document.getElementById("distance").value = distance;
+    document.getElementById("fastOnly").checked = fastOnly;
+
     if (defaultAddress) {
         document.getElementById("address").value = defaultAddress;
         showChargers();
@@ -98,18 +84,27 @@ async function init() {
         try {
             const { lat, lon } = await getCurrentLocation();
             initMap(lat, lon);
-            const distance = document.getElementById("distance").value;
-            const fastOnly = document.getElementById("fastOnly").checked;
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         } catch (error) {
             console.log("Geolocation failed:", error.message);
-            // Fallback to a default address (e.g., Austin, TX)
             document.getElementById("address").value = "123 Main St, Austin, TX";
             showChargers();
         }
     }
 }
 
-// Run on page load
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
+                (error) => reject(error)
+            );
+        } else {
+            reject(new Error("Geolocation not supported"));
+        }
+    });
+}
+
 window.onload = init;
