@@ -8,9 +8,17 @@
 </head>
 <body>
     <h1>Find Nearby EV Chargers</h1>
-    <input type="text" id="address" placeholder="Enter property address">
-    <button onclick="showChargers()">Show Chargers</button>
-    <div id="map" style="height: 500px;"></div>
+    <div class="controls">
+        <input type="text" id="address" placeholder="Enter property address">
+        <select id="distance">
+            <option value="0.5">Walking (0.5 miles)</option>
+            <option value="5">Driving (5 miles)</option>
+            <option value="10" selected>Driving (10 miles)</option>
+        </select>
+        <label><input type="checkbox" id="fastOnly"> Fast Chargers Only</label>
+        <button onclick="showChargers()">Show Chargers</button>
+    </div>
+    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
