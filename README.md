@@ -64,6 +64,6 @@ Live version: https://hgottipati.github.io/ChargeNear
 Free to use under the MIT License—see LICENSE for details.
 
 ## Future Enhancements
-- Add more charger type filters (e.g., Level 2).
-- Integrate real-time availability data.
-- Support custom marker uploads.
+- Add more charger type filters (e.g., Level 2)
+- Integrate real-time availability data
+- Support custom marker uploads
