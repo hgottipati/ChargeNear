@@ -35,9 +35,10 @@ async function getCoordinates(address) {
 }
 
 async function getChargers(lat, lon, distance, fastOnly) {
-    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your real key here
-    const url = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
-    const response = await fetch(url);
+    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your real key
+    const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+    const apiUrl = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
+    const response = await fetch(proxyUrl + apiUrl);
     let chargers = await response.json();
     console.log("Chargers:", chargers);
     if (fastOnly) {
@@ -61,6 +62,8 @@ function addChargersToMap(chargers) {
 }
 
 async function showChargers() {
+    const loading = document.getElementById("loading");
+    if (loading) loading.style.display = "block";
     const address = document.getElementById("address").value;
     const distance = document.getElementById("distance").value;
     const fastOnly = document.getElementById("fastOnly").checked;
@@ -71,6 +74,8 @@ async function showChargers() {
         addChargersToMap(chargers);
     } catch (error) {
         alert("Error: " + error.message);
+    } finally {
+        if (loading) loading.style.display = "none";
     }
 }
 
@@ -85,8 +90,10 @@ async function init() {
 
     if (defaultAddress) {
         document.getElementById("address").value = defaultAddress;
-        showChargers();
+        await showChargers();
     } else {
+        const loading = document.getElementById("loading");
+        if (loading) loading.style.display = "block";
         try {
             const { lat, lon } = await getCurrentLocation();
             initMap(lat, lon);
@@ -94,8 +101,14 @@ async function init() {
             addChargersToMap(chargers);
         } catch (error) {
             console.log("Geolocation failed:", error.message);
-            document.getElementById("address").value = "123 Main St, Austin, TX";
-            showChargers();
+            if (error.code === 1) { // User denied geolocation
+                document.getElementById("address").value = "123 Main St, Austin, TX";
+                await showChargers();
+            } else {
+                alert("Geolocation not supported or failed: " + error.message);
+            }
+        } finally {
+            if (loading) loading.style.display = "none";
         }
     }
 }
@@ -105,7 +118,8 @@ function getCurrentLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
-                (error) => reject(error)
+                (error) => reject(error),
+                { timeout: 10000 } // Wait up to 10 seconds
             );
         } else {
             reject(new Error("Geolocation not supported"));
