@@ -10,7 +10,8 @@
 <body>
     <div id="map"></div>
     <div class="controls">
-        <input type="text" id="address" placeholder="Enter property address">
+        <input type="text" id="address" list="address-suggestions" placeholder="Enter property address">
+        <datalist id="address-suggestions"></datalist>
         <select id="distance">
             <option value="0.5">Walking (0.5 miles)</option>
             <option value="5">Driving (5 miles)</option>
