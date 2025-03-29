@@ -116,12 +116,22 @@ async function init() {
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         } catch (error) {
-            console.log("Init geolocation failed:", error.message, error.code); // More logging
+            console.log("Init geolocation failed:", error);
             if (error.code === 1) { // User denied
                 document.getElementById("address").value = "123 Main St, Austin, TX";
                 await showChargers();
-            } else {
-                alert("Geolocation unavailable: " + (error.message || "Unknown error"));
+            } else if (error.code === 2) { // Position unavailable
+                alert("Couldn’t get your location—using default instead.");
+                document.getElementById("address").value = "123 Main St, Austin, TX";
+                await showChargers();
+            } else if (error.code === 3) { // Timeout
+                alert("Location request timed out—using default instead.");
+                document.getElementById("address").value = "123 Main St, Austin, TX";
+                await showChargers();
+            } else { // Unknown error (like your case)
+                alert("Geolocation failed unexpectedly—using default instead.");
+                document.getElementById("address").value = "123 Main St, Austin, TX";
+                await showChargers();
             }
         } finally {
             if (loading) loading.style.display = "none";
