@@ -23,7 +23,7 @@ async function getCoordinates(address) {
     const response = await fetch(url);
     const data = await response.json();
     console.log("Mapbox geocoding response:", data);
-    if (data.features.length > 0) {
+    if (data?.features?.length > 0) {
         const [lon, lat] = data.features[0].center;
         return { lat, lon };
     }
@@ -34,7 +34,7 @@ async function getAddressSuggestions(query) {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}&limit=5`;
     const response = await fetch(url);
     const data = await response.json();
-    return data.features.map(feature => feature.place_name);
+    return data.features?.map(feature => feature.place_name) || [];
 }
 
 async function getChargers(lat, lon, distance) {
@@ -43,26 +43,32 @@ async function getChargers(lat, lon, distance) {
         console.log("Using cached chargers:", chargerCache[cacheKey]);
         return chargerCache[cacheKey];
     }
-    const bboxSize = distance * 0.05; // Wider search
+    const bboxSize = distance * 0.05;
     const bbox = `${lon - bboxSize},${lat - bboxSize},${lon + bboxSize},${lat + bboxSize}`;
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/charging%20station.json?bbox=${bbox}&types=poi&access_token=${mapboxgl.accessToken}&limit=10`;
     try {
         const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+        }
         const data = await response.json();
         console.log("Mapbox charger URL:", url);
         console.log("Mapbox charger response:", JSON.stringify(data, null, 2));
-        if (!data.features || data.features.length === 0) {
+        if (!data || !data.features || data.features.length === 0) {
             console.log("No chargers found in this area.");
             return [];
         }
-        const chargers = data.features.map(feature => ({
-            AddressInfo: { 
-                Latitude: feature.center[1], 
-                Longitude: feature.center[0], 
-                Title: feature.place_name 
-            },
-            Connections: [{ LevelID: feature.properties.category?.includes('fast') ? 3 : 2 }]
-        }));
+        const chargers = data.features.map(feature => {
+            console.log("Processing charger:", feature);
+            return {
+                AddressInfo: { 
+                    Latitude: feature.center[1], 
+                    Longitude: feature.center[0], 
+                    Title: feature.place_name 
+                },
+                Connections: [{ LevelID: feature.properties?.category?.includes('fast') ? 3 : 2 }]
+            };
+        });
         chargerCache[cacheKey] = chargers;
         return chargers;
     } catch (error) {
@@ -92,8 +98,8 @@ async function showChargers() {
 
     try {
         const { lat, lon } = await getCoordinates(address);
-        initMap(lat, lon); // Map loads first
-        if (loading) loading.style.display = "block"; // Show loading only for chargers
+        initMap(lat, lon);
+        if (loading) loading.style.display = "block";
         const chargers = await getChargers(lat, lon, distance);
         addChargersToMap(chargers);
     } catch (error) {
@@ -132,7 +138,7 @@ async function init() {
     } else {
         try {
             const { lat, lon } = await getCurrentLocation();
-            initMap(lat, lon); // Map loads immediately
+            initMap(lat, lon);
             if (loading) loading.style.display = "block";
             const chargers = await getChargers(lat, lon, distance);
             addChargersToMap(chargers);
