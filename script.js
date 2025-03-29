@@ -78,6 +78,22 @@ async function showChargers() {
         if (loading) loading.style.display = "none";
     }
 }
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
+                (error) => {
+                    console.log("Geolocation error details:", error); // Detailed log
+                    reject(error);
+                },
+                { timeout: 10000 }
+            );
+        } else {
+            reject(new Error("Geolocation not supported by this browser"));
+        }
+    });
+}
 
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -100,31 +116,16 @@ async function init() {
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         } catch (error) {
-            console.log("Geolocation failed:", error.message);
-            if (error.code === 1) { // User denied geolocation
+            console.log("Init geolocation failed:", error.message, error.code); // More logging
+            if (error.code === 1) { // User denied
                 document.getElementById("address").value = "123 Main St, Austin, TX";
                 await showChargers();
             } else {
-                alert("Geolocation not supported or failed: " + error.message);
+                alert("Geolocation unavailable: " + (error.message || "Unknown error"));
             }
         } finally {
             if (loading) loading.style.display = "none";
         }
     }
 }
-
-function getCurrentLocation() {
-    return new Promise((resolve, reject) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
-                (error) => reject(error),
-                { timeout: 10000 } // Wait up to 10 seconds
-            );
-        } else {
-            reject(new Error("Geolocation not supported"));
-        }
-    });
-}
-
 window.onload = init;
