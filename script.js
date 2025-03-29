@@ -37,43 +37,39 @@ async function getAddressSuggestions(query) {
     return data.features?.map(feature => feature.place_name) || [];
 }
 
-async function getChargers(lat, lon, distance) {
-    const cacheKey = `${lat},${lon},${distance}`;
+async function getChargers(lat, lon, distance, fastOnly) {
+    const cacheKey = `${lat},${lon},${distance},${fastOnly}`;
     if (chargerCache[cacheKey]) {
         console.log("Using cached chargers:", chargerCache[cacheKey]);
         return chargerCache[cacheKey];
     }
-    const bboxSize = distance * 0.05;
-    const bbox = `${lon - bboxSize},${lat - bboxSize},${lon + bboxSize},${lat + bboxSize}`;
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/charging%20station.json?bbox=${bbox}&types=poi&access_token=${mapboxgl.accessToken}&limit=10`;
+    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your OCM key
+    const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+    const apiUrl = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
+    console.log("Fetching chargers from:", apiUrl);
     try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        const response = await fetch(proxyUrl + apiUrl, { signal: controller.signal });
+        clearTimeout(timeout);
         if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+            const text = await response.text();
+            throw new Error(`HTTP error ${response.status}: ${text}`);
         }
         const data = await response.json();
-        console.log("Mapbox charger URL:", url);
-        console.log("Mapbox charger response:", JSON.stringify(data, null, 2));
-        if (!data || !data.features || data.features.length === 0) {
-            console.log("No chargers found in this area.");
-            return [];
+        console.log("OCM charger response:", data);
+        let chargers = data || [];
+        if (fastOnly) {
+            chargers = chargers.filter(charger => 
+                charger.Connections.some(conn => conn.LevelID === 3)
+            );
         }
-        const chargers = data.features.map(feature => {
-            console.log("Processing charger:", feature);
-            return {
-                AddressInfo: { 
-                    Latitude: feature.center[1], 
-                    Longitude: feature.center[0], 
-                    Title: feature.place_name 
-                },
-                Connections: [{ LevelID: feature.properties?.category?.includes('fast') ? 3 : 2 }]
-            };
-        });
         chargerCache[cacheKey] = chargers;
+        console.log("Chargers fetched:", chargers);
         return chargers;
     } catch (error) {
         console.error("Charger fetch failed:", error.message);
-        return [];
+        throw error; // Propagate to trigger finally
     }
 }
 
@@ -95,15 +91,17 @@ async function showChargers() {
     const loading = document.getElementById("loading");
     const address = document.getElementById("address").value;
     const distance = document.getElementById("distance").value;
+    const fastOnly = document.getElementById("fastOnly").checked;
 
     try {
         const { lat, lon } = await getCoordinates(address);
         initMap(lat, lon);
         if (loading) loading.style.display = "block";
-        const chargers = await getChargers(lat, lon, distance);
+        const chargers = await getChargers(lat, lon, distance, fastOnly);
         addChargersToMap(chargers);
     } catch (error) {
-        alert("Error: " + error.message);
+        console.error("Show chargers error:", error.message);
+        alert("Error loading chargers: " + error.message);
     } finally {
         if (loading) loading.style.display = "none";
     }
@@ -113,8 +111,10 @@ async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const defaultAddress = urlParams.get('address');
     const distance = urlParams.get('distance') || document.getElementById("distance").value;
+    const fastOnly = urlParams.get('fastOnly') === 'true' || document.getElementById("fastOnly").checked;
 
     document.getElementById("distance").value = distance;
+    document.getElementById("fastOnly").checked = fastOnly;
 
     const addressInput = document.getElementById("address");
     addressInput.addEventListener("input", async () => {
@@ -140,7 +140,7 @@ async function init() {
             const { lat, lon } = await getCurrentLocation();
             initMap(lat, lon);
             if (loading) loading.style.display = "block";
-            const chargers = await getChargers(lat, lon, distance);
+            const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         } catch (error) {
             console.log("Init geolocation failed:", error);
