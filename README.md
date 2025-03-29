@@ -1,4 +1,5 @@
-![ChargeNear Map](https://github.com/hgottipati/ChargeNear/raw/main/screenshot.png)
+![ChargeNear Map](https://github.com/hgottipati/ChargeNear/blob/main/screenshot.jpg)
+
 
 # ChargeNear
 An interactive, open-source map for hotels and Airbnb hosts to display nearby EV chargers, helping attract electric vehicle-owning guests.
