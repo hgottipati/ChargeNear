@@ -15,13 +15,16 @@ function initMap(lat, lon) {
     if (map) map.remove();
     map = L.map('map').setView([lat, lon], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-    propertyMarker = L.marker([lat, lon], { icon: propertyIcon }).addTo(map).bindPopup("Your Location");
+    const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+    propertyMarker = L.marker([lat, lon], { icon: propertyIcon })
+        .addTo(map)
+        .bindPopup(`Your Location<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`);
 }
 
 async function getCoordinates(address) {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
     const response = await fetch(url, {
-        headers: { "User-Agent": "ev-friendly-hosts/1.0 (your-email@example.com)" }
+        headers: { "User-Agent": "ChargeNear/1.0 (your-email@example.com)" }
     });
     const data = await response.json();
     console.log("Nominatim response:", data);
@@ -32,7 +35,7 @@ async function getCoordinates(address) {
 }
 
 async function getChargers(lat, lon, distance, fastOnly) {
-    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464";
+    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your real key here
     const url = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
     const response = await fetch(url);
     let chargers = await response.json();
@@ -50,7 +53,10 @@ function addChargersToMap(chargers) {
         const lat = charger.AddressInfo.Latitude;
         const lon = charger.AddressInfo.Longitude;
         const name = charger.AddressInfo.Title;
-        L.marker([lat, lon], { icon: chargerIcon }).addTo(map).bindPopup(name);
+        const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+        L.marker([lat, lon], { icon: chargerIcon })
+            .addTo(map)
+            .bindPopup(`${name}<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`);
     });
 }
 
