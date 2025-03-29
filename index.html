@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChargeNear - EV Charger Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="map"></div>
     <div class="controls">
-        <input type="text" id="address" list="address-suggestions" placeholder="Enter property address">
-        <datalist id="address-suggestions"></datalist>
+        <input type="text" id="address" placeholder="Enter property address">
         <select id="distance">
             <option value="0.5">Walking (0.5 miles)</option>
             <option value="5">Driving (5 miles)</option>
@@ -21,7 +21,6 @@
         <button onclick="showChargers()">Show Chargers</button>
     </div>
     <div id="loading" class="loading">Loading chargers...</div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

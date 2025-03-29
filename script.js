@@ -1,50 +1,43 @@
+mapboxgl.accessToken = 'pk.eyJ1IjoiaGdvdHRpcGF0aSIsImEiOiJjbTh0cjRzazMwZXFvMnNxMmExNTdqZjBlIn0.JffbXqKwr5oh2_kMapNyDw'; // Replace with your token
+
 let map;
-let propertyMarker;
-
-const propertyIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]
-});
-
-const chargerIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]
-});
 
 function initMap(lat, lon) {
     if (map) map.remove();
-    map = L.map('map').setView([lat, lon], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [lon, lat], // Mapbox uses [lon, lat]
+        zoom: 13
+    });
     const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
-    propertyMarker = L.marker([lat, lon], { icon: propertyIcon })
-        .addTo(map)
-        .bindPopup(`Your Location<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`);
+    new mapboxgl.Marker({ color: 'green' })
+        .setLngLat([lon, lat])
+        .setPopup(new mapboxgl.Popup().setHTML(`Your Location<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`))
+        .addTo(map);
 }
 
 async function getCoordinates(address) {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
-    const response = await fetch(url, {
-        headers: { "User-Agent": "ChargeNear/1.0 (your-email@example.com)" }
-    });
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}&limit=1`;
+    const response = await fetch(url);
     const data = await response.json();
-    console.log("Nominatim response:", data);
-    if (data.length > 0) {
-        return { lat: data[0].lat, lon: data[0].lon };
+    console.log("Mapbox geocoding response:", data);
+    if (data.features.length > 0) {
+        const [lon, lat] = data.features[0].center;
+        return { lat, lon };
     }
     throw new Error("Address not found");
 }
 
 async function getAddressSuggestions(query) {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`;
-    const response = await fetch(url, {
-        headers: { "User-Agent": "ChargeNear/1.0 (your-email@example.com)" }
-    });
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}&limit=5`;
+    const response = await fetch(url);
     const data = await response.json();
-    return data.map(item => item.display_name);
+    return data.features.map(feature => feature.place_name);
 }
 
 async function getChargers(lat, lon, distance, fastOnly) {
-    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your real key
+    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your Open Charge Map key
     const proxyUrl = "https://cors-anywhere.herokuapp.com/";
     const apiUrl = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
     try {
@@ -74,9 +67,10 @@ function addChargersToMap(chargers) {
         const lon = charger.AddressInfo.Longitude;
         const name = charger.AddressInfo.Title;
         const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
-        L.marker([lat, lon], { icon: chargerIcon })
-            .addTo(map)
-            .bindPopup(`${name}<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`);
+        new mapboxgl.Marker({ color: 'blue' })
+            .setLngLat([lon, lat])
+            .setPopup(new mapboxgl.Popup().setHTML(`${name}<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`))
+            .addTo(map);
     });
 }
 
@@ -107,17 +101,19 @@ async function init() {
     document.getElementById("distance").value = distance;
     document.getElementById("fastOnly").checked = fastOnly;
 
-    // Autocomplete setup
     const addressInput = document.getElementById("address");
-    const suggestionsList = document.getElementById("address-suggestions");
     addressInput.addEventListener("input", async () => {
         const query = addressInput.value;
-        if (query.length < 3) {
-            suggestionsList.innerHTML = "";
-            return;
-        }
+        if (query.length < 3) return;
         const suggestions = await getAddressSuggestions(query);
-        suggestionsList.innerHTML = suggestions.map(s => `<option value="${s}">`).join("");
+        const datalist = document.createElement('datalist');
+        datalist.id = 'address-suggestions';
+        datalist.innerHTML = suggestions.map(s => `<option value="${s}">`).join("");
+        addressInput.setAttribute('list', 'address-suggestions');
+        if (document.getElementById('address-suggestions')) {
+            document.getElementById('address-suggestions').remove();
+        }
+        document.body.appendChild(datalist);
     });
 
     if (defaultAddress) {
@@ -133,21 +129,12 @@ async function init() {
             addChargersToMap(chargers);
         } catch (error) {
             console.log("Init geolocation failed:", error);
-            if (error.code === 1) { // User denied
-                addressInput.value = "123 Main St, Austin, TX";
-                await showChargers();
-            } else if (error.code === 2) { // Position unavailable
+            if (error.code === 1 || error.code === 2 || error.code === 3 || !navigator.geolocation) {
                 alert("Couldn’t get your location—using default instead.");
                 addressInput.value = "123 Main St, Austin, TX";
                 await showChargers();
-            } else if (error.code === 3) { // Timeout
-                alert("Location request timed out—using default instead.");
-                addressInput.value = "123 Main St, Austin, TX";
-                await showChargers();
-            } else { // Unknown error
-                alert("Geolocation failed unexpectedly—using default instead.");
-                addressInput.value = "123 Main St, Austin, TX";
-                await showChargers();
+            } else {
+                alert("Geolocation failed unexpectedly: " + error.message);
             }
         } finally {
             if (loading) loading.style.display = "none";
@@ -164,7 +151,7 @@ function getCurrentLocation() {
                     console.log("Geolocation error:", error.code, error.message, error);
                     reject(error);
                 },
-                { timeout: 10000 }
+                { timeout: 15000 } // Increased for mobile
             );
         } else {
             reject(new Error("Geolocation not supported by this browser"));
