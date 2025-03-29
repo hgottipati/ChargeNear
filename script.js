@@ -34,19 +34,38 @@ async function getCoordinates(address) {
     throw new Error("Address not found");
 }
 
+async function getAddressSuggestions(query) {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`;
+    const response = await fetch(url, {
+        headers: { "User-Agent": "ChargeNear/1.0 (your-email@example.com)" }
+    });
+    const data = await response.json();
+    return data.map(item => item.display_name);
+}
+
 async function getChargers(lat, lon, distance, fastOnly) {
     const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your real key
     const proxyUrl = "https://cors-anywhere.herokuapp.com/";
     const apiUrl = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
-    const response = await fetch(proxyUrl + apiUrl);
-    let chargers = await response.json();
-    console.log("Chargers:", chargers);
-    if (fastOnly) {
-        chargers = chargers.filter(charger => 
-            charger.Connections.some(conn => conn.LevelID === 3)
-        );
+    try {
+        const response = await fetch(proxyUrl + apiUrl);
+        const text = await response.text();
+        console.log("Raw charger response:", text);
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}: ${text}`);
+        }
+        const chargers = JSON.parse(text);
+        console.log("Chargers:", chargers);
+        if (fastOnly) {
+            return chargers.filter(charger => 
+                charger.Connections.some(conn => conn.LevelID === 3)
+            );
+        }
+        return chargers;
+    } catch (error) {
+        console.error("Charger fetch failed:", error.message);
+        return [];
     }
-    return chargers;
 }
 
 function addChargersToMap(chargers) {
@@ -78,22 +97,6 @@ async function showChargers() {
         if (loading) loading.style.display = "none";
     }
 }
-function getCurrentLocation() {
-    return new Promise((resolve, reject) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
-                (error) => {
-                    console.log("Geolocation error details:", error); // Detailed log
-                    reject(error);
-                },
-                { timeout: 10000 }
-            );
-        } else {
-            reject(new Error("Geolocation not supported by this browser"));
-        }
-    });
-}
 
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -104,8 +107,21 @@ async function init() {
     document.getElementById("distance").value = distance;
     document.getElementById("fastOnly").checked = fastOnly;
 
+    // Autocomplete setup
+    const addressInput = document.getElementById("address");
+    const suggestionsList = document.getElementById("address-suggestions");
+    addressInput.addEventListener("input", async () => {
+        const query = addressInput.value;
+        if (query.length < 3) {
+            suggestionsList.innerHTML = "";
+            return;
+        }
+        const suggestions = await getAddressSuggestions(query);
+        suggestionsList.innerHTML = suggestions.map(s => `<option value="${s}">`).join("");
+    });
+
     if (defaultAddress) {
-        document.getElementById("address").value = defaultAddress;
+        addressInput.value = defaultAddress;
         await showChargers();
     } else {
         const loading = document.getElementById("loading");
@@ -118,19 +134,19 @@ async function init() {
         } catch (error) {
             console.log("Init geolocation failed:", error);
             if (error.code === 1) { // User denied
-                document.getElementById("address").value = "123 Main St, Austin, TX";
+                addressInput.value = "123 Main St, Austin, TX";
                 await showChargers();
             } else if (error.code === 2) { // Position unavailable
                 alert("Couldn’t get your location—using default instead.");
-                document.getElementById("address").value = "123 Main St, Austin, TX";
+                addressInput.value = "123 Main St, Austin, TX";
                 await showChargers();
             } else if (error.code === 3) { // Timeout
                 alert("Location request timed out—using default instead.");
-                document.getElementById("address").value = "123 Main St, Austin, TX";
+                addressInput.value = "123 Main St, Austin, TX";
                 await showChargers();
-            } else { // Unknown error (like your case)
+            } else { // Unknown error
                 alert("Geolocation failed unexpectedly—using default instead.");
-                document.getElementById("address").value = "123 Main St, Austin, TX";
+                addressInput.value = "123 Main St, Austin, TX";
                 await showChargers();
             }
         } finally {
@@ -138,4 +154,22 @@ async function init() {
         }
     }
 }
+
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
+                (error) => {
+                    console.log("Geolocation error:", error.code, error.message, error);
+                    reject(error);
+                },
+                { timeout: 10000 }
+            );
+        } else {
+            reject(new Error("Geolocation not supported by this browser"));
+        }
+    });
+}
+
 window.onload = init;
