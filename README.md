@@ -1,4 +1,4 @@
-<img width="1410" alt="image" src="https://github.com/user-attachments/assets/655b7213-f270-4a1a-b991-45fc8519d0dd" />
+![Uploading image.png…]()
 
 
 # EV-Friendly Hosts
