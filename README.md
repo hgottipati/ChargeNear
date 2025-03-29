@@ -1,7 +1,6 @@
-![Uploading image.png…]()
+![ChargeNear Map](https://github.com/hgottipati/ChargeNear/raw/main/screenshot.png)
 
-
-# EV-Friendly Hosts
+# ChargeNear
 An interactive, open-source map for hotels and Airbnb hosts to display nearby EV chargers, helping attract electric vehicle-owning guests.
 
 ## Features
@@ -22,22 +21,48 @@ This tool is **free to use** and open-source! Embed it in two easy ways:
 ### Option 1: Embed with a Specific Address
 Copy this iframe code into your website’s HTML, replacing the address with your property’s:
 ```html
-<iframe src="https://hgottipati.github.io/ev-friendly-hosts?address=123+Main+St,+Austin,+TX" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
+<iframe src="https://hgottipati.github.io/ChargeNear?address=123+Main+St,+Austin,+TX" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
 ```
 
 ### Option 2: Embed with Current Location
 Copy this iframe code into your website’s HTML:
 ```html
-<iframe src="https://hgottipati.github.io/ev-friendly-hosts" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
+<iframe src="https://hgottipati.github.io/ChargeNear" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
 ```
 
+### Customization Tips
+- Adjust width and height in the iframe to fit your site’s layout.
+- Add URL parameters for defaults:
+  - ?distance=5 (or 0.5, 10) to set the search radius.
+  - ?fastOnly=true to show only fast chargers.
+  - Example: https://hgottipati.github.io/ChargeNear?address=123+Main+St,+Austin,+TX&distance=5&fastOnly=true.
+
+## Setup for Developers
+1. Clone the repo:
+```bash
+git clone https://github.com/hgottipati/ChargeNear.git
+```
+2. Replace the API key in script.js with your own Open Charge Map key (get one at openchargemap.org).
+3. Install dependencies:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+4. Run locally:
+```bash
+python3 -m http.server 8000
+```
+5. Visit http://localhost:8000.
+
+## Demo
+Live version: https://hgottipati.github.io/ChargeNear
+
+
 ## License
-MIT License
+Free to use under the MIT License—see LICENSE for details.
 
-Copyright (c) 2025 Hareesh Gottipati
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+## Future Enhancements
+- Add more charger type filters (e.g., Level 2).
+- Integrate real-time availability data.
+- Support custom marker uploads.
