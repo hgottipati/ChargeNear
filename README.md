@@ -8,7 +8,7 @@ An interactive, open-source map for hotels and Airbnb hosts to display nearby EV
 - Defaults to the user's current location (with permission), falls back to Austin, TX if denied.
 - Filters by walking (0.5 miles) or driving (5 or 10 miles) distance, with an option for fast chargers only (Level 3/DC Fast).
 - Custom markers: green for the property, blue for chargers.
-- Built with Leaflet.js and the Open Charge Map API.
+- Built with Mapbox GL JS and the Open Charge Map API.
 
 ## Why It’s Useful
 Hotels and Airbnb hosts can embed this map on their websites to:
