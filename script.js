@@ -1,7 +1,6 @@
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGdvdHRpcGF0aSIsImEiOiJjbTh0cjRzazMwZXFvMnNxMmExNTdqZjBlIn0.JffbXqKwr5oh2_kMapNyDw'; // Replace with your token
 
 let map;
-let chargerCache = {};
 
 function initMap(lat, lon) {
     if (map) map.remove();
@@ -18,11 +17,11 @@ function initMap(lat, lon) {
         .addTo(map);
 }
 
+
 async function getCoordinates(address) {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}&limit=1`;
     const response = await fetch(url);
     const data = await response.json();
-    console.log("Mapbox geocoding response:", data);
     if (data?.features?.length > 0) {
         const [lon, lat] = data.features[0].center;
         return { lat, lon };
@@ -38,43 +37,18 @@ async function getAddressSuggestions(query) {
 }
 
 async function getChargers(lat, lon, distance, fastOnly) {
-    const cacheKey = `${lat},${lon},${distance},${fastOnly}`;
-    if (chargerCache[cacheKey]) {
-        console.log("Using cached chargers:", chargerCache[cacheKey]);
-        return chargerCache[cacheKey];
+    const url = `https://fqhknl3xb2.execute-api.us-east-1.amazonaws.com/default?lat=${lat}&lon=${lon}&distance=${distance}&fastOnly=${fastOnly}`;
+    console.log("Fetching chargers from:", url);
+    const response = await fetch(url);
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP error ${response.status}: ${text}`);
     }
-    const apiKey = "b61c6aab-6cef-43a9-af78-215cb02d1464"; // Your OCM key
-    const proxyUrl = "https://cors-anywhere.herokuapp.com/";
-    const apiUrl = `https://api.openchargemap.io/v3/poi/?output=json&latitude=${lat}&longitude=${lon}&distance=${distance}&distanceunit=Miles&maxresults=10&key=${apiKey}`;
-    console.log("Fetching chargers from:", apiUrl);
-    try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
-        const response = await fetch(proxyUrl + apiUrl, { signal: controller.signal });
-        clearTimeout(timeout);
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`HTTP error ${response.status}: ${text}`);
-        }
-        const data = await response.json();
-        console.log("OCM charger response:", data);
-        let chargers = data || [];
-        if (fastOnly) {
-            chargers = chargers.filter(charger => 
-                charger.Connections.some(conn => conn.LevelID === 3)
-            );
-        }
-        chargerCache[cacheKey] = chargers;
-        console.log("Chargers fetched:", chargers);
-        return chargers;
-    } catch (error) {
-        console.error("Charger fetch failed:", error.message);
-        throw error; // Propagate to trigger finally
-    }
+    return await response.json();
 }
 
 function addChargersToMap(chargers) {
-    console.log("Adding chargers to map:", chargers);
+    console.log("Adding chargers:", chargers);
     chargers.forEach(charger => {
         const lat = charger.AddressInfo.Latitude;
         const lon = charger.AddressInfo.Longitude;
@@ -100,8 +74,7 @@ async function showChargers() {
         const chargers = await getChargers(lat, lon, distance, fastOnly);
         addChargersToMap(chargers);
     } catch (error) {
-        console.error("Show chargers error:", error.message);
-        alert("Error loading chargers: " + error.message);
+        alert("Error: " + error.message);
     } finally {
         if (loading) loading.style.display = "none";
     }
@@ -145,11 +118,11 @@ async function init() {
         } catch (error) {
             console.log("Init geolocation failed:", error);
             if (error.code === 1 || error.code === 2 || error.code === 3 || !navigator.geolocation) {
-                alert("Couldn’t get your location—using default instead.");
+                alert("Couldn’t get your location—using default.");
                 addressInput.value = "123 Main St, Austin, TX";
                 await showChargers();
             } else {
-                alert("Geolocation failed unexpectedly: " + error.message);
+                alert("Geolocation failed: " + error.message);
             }
         } finally {
             if (loading) loading.style.display = "none";
@@ -162,14 +135,11 @@ function getCurrentLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
-                (error) => {
-                    console.log("Geolocation error:", error.code, error.message, error);
-                    reject(error);
-                },
+                (error) => reject(error),
                 { timeout: 15000 }
             );
         } else {
-            reject(new Error("Geolocation not supported by this browser"));
+            reject(new Error("Geolocation not supported"));
         }
     });
 }
