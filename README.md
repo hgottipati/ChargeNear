@@ -42,7 +42,7 @@ Copy this iframe code into your website’s HTML:
   - Example: https://hgottipati.github.io/ChargeNear?address=123+Main+St,+Austin,+TX&distance=5&fastOnly=true.
 
 ### Architecture Diagram
-![ChargeNear Architecture](docs/ChargeNear Architecture.png)
+<img src="https://github.com/hgottipati/ChargeNear/blob/main/docs/chargenear_architecture.png" alt="ChargeNear Architecture" width="600">
 
 ## Setup for Developers
 1. Clone the repo:
