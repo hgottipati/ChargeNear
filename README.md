@@ -1,5 +1,13 @@
 
-## 👉 [**<img src="https://chargenear.org/favicon.png" alt="ChargeNear" width="16"> ChargeNear.org**](https://chargenear.org)
+<p align="center">
+  <a href="https://chargenear.org">
+    <h2>
+      <img src="https://chargenear.org/favicon.png" alt="ChargeNear" width="20">
+      <strong>ChargeNear.org</strong>
+    </h2>
+  </a>
+</p>
+
 [![ChargeNear](https://img.shields.io/badge/Visit-ChargeNear.org-blue?logo=electric-vehicle&logoColor=white)](https://chargenear.org)
 
 
