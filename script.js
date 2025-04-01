@@ -213,8 +213,8 @@ async function init() {
     } else {
         try {
             // Default to Expedia Group office in Seattle
-            const defaultLat = 47.6145;
-            const defaultLon = -122.3391;
+            const defaultLat = 47.6290525;
+            const defaultLon = -122.3758909;
             initMap(defaultLat, defaultLon);
             if (loading) loading.style.display = "block";
             const chargers = await getChargers(defaultLat, defaultLon, distance, fastOnly);
