@@ -18,8 +18,8 @@ with Diagram("ChargeNear Architecture", show=False, direction="TB"):
         lambda_func = Lambda("Lambda\n(ChargeNearProxy)")
 
     # External APIs
-    ocm = Custom("Open Charge Map API", "./ocm_logo.png")  # You'll need a logo image
-    mapbox = Custom("Mapbox API", "./mapbox_logo.png")      # You'll need a logo image
+    ocm = Custom("Open Charge Map API", "./ocm_logo.png", width="2", height="2")
+    mapbox = Custom("Mapbox API", "./mapbox_logo.png", width="2", height="2", fontsize="20")
 
     # Connections
     user >> Edge(label="HTTPS Request") >> cloudfront
