@@ -1,22 +1,37 @@
-mapboxgl.accessToken = 'pk.eyJ1IjoiaGdvdHRpcGF0aSIsImEiOiJjbTh0cjRzazMwZXFvMnNxMmExNTdqZjBlIn0.JffbXqKwr5oh2_kMapNyDw'; // Replace with your token
 
 let map;
 
 function initMap(lat, lon) {
-    if (map) map.remove();
+    mapboxgl.accessToken = 'pk.eyJ1IjoiaGdvdHRpcGF0aSIsImEiOiJjbTh0cjRzazMwZXFvMnNxMmExNTdqZjBlIn0.JffbXqKwr5oh2_kMapNyDw';
     map = new mapboxgl.Map({
         container: 'map',
-        style: 'mapbox://styles/mapbox/streets-v12',
+        style: 'mapbox://styles/mapbox/streets-v11',
         center: [lon, lat],
-        zoom: 13
+        zoom: 12
     });
-    const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
-    new mapboxgl.Marker({ color: 'green' })
-        .setLngLat([lon, lat])
-        .setPopup(new mapboxgl.Popup().setHTML(`Your Location<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`))
-        .addTo(map);
-}
 
+    // Add zoom and rotation controls to the map
+    map.addControl(new mapboxgl.NavigationControl());
+
+    // Fetch chargers when the map moves
+    map.on('moveend', async () => {
+        const center = map.getCenter();
+        const bounds = map.getBounds();
+        // Calculate distance (approximate) using the bounds
+        const distance = Math.round(
+            mapboxgl.MercatorCoordinate.fromLngLat(bounds.getNorthEast())
+                .distanceTo(mapboxgl.MercatorCoordinate.fromLngLat(bounds.getSouthWest())) / 1609.34 // Convert meters to miles
+        ) / 2; // Approximate radius
+
+        const fastOnly = document.getElementById("fastOnly").checked;
+        try {
+            const chargers = await getChargers(center.lat, center.lng, distance, fastOnly);
+            addChargersToMap(chargers);
+        } catch (error) {
+            console.error("Error fetching chargers on map move:", error.message);
+        }
+    });
+}
 async function getCoordinates(address) {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}&limit=1`;
     const response = await fetch(url);
