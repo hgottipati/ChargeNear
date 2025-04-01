@@ -38,6 +38,9 @@ Copy this iframe code into your website’s HTML:
   - ?fastOnly=true to show only fast chargers.
   - Example: https://hgottipati.github.io/ChargeNear?address=123+Main+St,+Austin,+TX&distance=5&fastOnly=true.
 
+### Architecture Diagram
+![ChargeNear Architecture](docs/ChargeNear Architecture.png)
+
 ## Setup for Developers
 1. Clone the repo:
 ```bash
