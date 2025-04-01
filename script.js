@@ -17,7 +17,6 @@ function initMap(lat, lon) {
         .addTo(map);
 }
 
-
 async function getCoordinates(address) {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}&limit=1`;
     const response = await fetch(url);
@@ -37,7 +36,7 @@ async function getAddressSuggestions(query) {
 }
 
 async function getChargers(lat, lon, distance, fastOnly) {
-    const url = `https://fqhknl3xb2.execute-api.us-east-1.amazonaws.com/default?lat=${lat}&lon=${lon}&distance=${distance}&fastOnly=${fastOnly}`;
+    const url = `https://74ohkix1sb.execute-api.us-east-1.amazonaws.com/prod?lat=${lat}&lon=${lon}&distance=${distance}&fastOnly=${fastOnly}`;
     console.log("Fetching chargers from:", url);
     const response = await fetch(url);
     if (!response.ok) {
