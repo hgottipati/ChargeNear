@@ -3,27 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChargeNear - EV Charger Map</title>
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>ChargeNear</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { position: absolute; top: 100px; bottom: 0; width: 100%; }
+        #controls { position: absolute; top: 10px; left: 10px; z-index: 1; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
+        #loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; background: rgba(0,0,0,0.5); color: white; padding: 10px; border-radius: 5px; }
+    </style>
 </head>
 <body>
-    <div id="map-container">
-        <div id="map"></div>
+    <div id="controls">
+        <input type="text" id="address" placeholder="Enter address">
+        <input type="number" id="distance" placeholder="Distance (miles)" value="5">
+        <label><input type="checkbox" id="fastOnly"> Fast chargers only</label>
+        <button onclick="showChargers()">Search</button>
     </div>
-    <div id="controls-container">
-        <input type="text" id="address" placeholder="Enter property address">
-        <select id="distance">
-            <option value="0.5">Walking (0.5 miles)</option>
-            <option value="5">Driving (5 miles)</option>
-            <option value="10" selected>Driving (10 miles)</option>
-        </select>
-        <label><input type="checkbox" id="fastOnly"> Fast Chargers Only</label>
-        <button onclick="showChargers()">Show Chargers</button>
-    </div>
-    <div id="loading" class="loading">Loading chargers...</div>
+    <div id="loading">Loading...</div>
+    <div id="map"></div>
     <script src="script.js"></script>
 </body>
 </html>
