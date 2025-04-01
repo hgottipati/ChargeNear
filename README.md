@@ -1,5 +1,6 @@
-[https://chargenear.org](https://chargenear.org) 
+[![X](https://img.shields.io/badge/chargenear.org-21759B?logo=wordpress&logoColor=white)](https://chargenear.org)
 
+https://img.shields.io/badge/chargenear.org-21759B?logo=https%3A%2F%2Fchargenear.org%2Ffavicon.png&logoColor=white
 
 ![ChargeNear Map](https://github.com/hgottipati/ChargeNear/blob/main/screenshot.jpg)
 
