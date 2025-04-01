@@ -1,6 +1,66 @@
 
 let map;
 
+class GeolocationControl {
+    onAdd(map) {
+        this._map = map;
+        this._container = document.createElement('div');
+        this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+        this._container.innerHTML = `
+            <button class="mapboxgl-ctrl-icon" title="Get Current Location">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+            </button>
+        `;
+        this._container.onclick = async () => {
+            try {
+                const { lat, lon } = await getCurrentLocation();
+                map.flyTo({ center: [lon, lat], zoom: 14 });
+                // Add current location marker (to be implemented in Step 4)
+                addCurrentLocationMarker(lat, lon);
+                const distance = document.getElementById("distance").value || "5";
+                const fastOnly = document.getElementById("fastOnly").checked;
+                const chargers = await getChargers(lat, lon, distance, fastOnly);
+                addChargersToMap(chargers);
+                document.getElementById("address").value = "Current Location";
+            } catch (error) {
+                alert("Failed to get current location: " + error.message);
+            }
+        };
+        return this._container;
+    }
+
+    onRemove() {
+        this._container.parentNode.removeChild(this._container);
+        this._map = undefined;
+    }
+}
+
+let currentLocationMarker = null;
+
+function addCurrentLocationMarker(lat, lon) {
+    // Remove existing marker if it exists
+    if (currentLocationMarker) {
+        currentLocationMarker.remove();
+    }
+
+    // Create a custom dot marker (blue dot like Google Maps)
+    const el = document.createElement('div');
+    el.style.backgroundColor = '#4285F4'; // Google Maps blue
+    el.style.width = '12px';
+    el.style.height = '12px';
+    el.style.borderRadius = '50%';
+    el.style.border = '2px solid white';
+    el.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
+
+    // Add the marker to the map
+    currentLocationMarker = new mapboxgl.Marker({ element: el })
+        .setLngLat([lon, lat])
+        .addTo(map);
+}
+
 function initMap(lat, lon) {
     mapboxgl.accessToken = 'pk.eyJ1IjoiaGdvdHRpcGF0aSIsImEiOiJjbTh0cjRzazMwZXFvMnNxMmExNTdqZjBlIn0.JffbXqKwr5oh2_kMapNyDw';
     map = new mapboxgl.Map({
