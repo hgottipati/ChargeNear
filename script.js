@@ -79,7 +79,6 @@ function addChargersToMap(chargers) {
         markers.push(marker);
     });
 }
-}
 
 async function showChargers() {
     const loading = document.getElementById("loading");
@@ -123,11 +122,10 @@ function getCurrentLocation() {
         );
     });
 }
-
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const defaultAddress = urlParams.get('address');
-    const distance = urlParams.get('distance') || document.getElementById("distance").value;
+    const distance = urlParams.get('distance') || document.getElementById("distance").value || "5";
     const fastOnly = urlParams.get('fastOnly') === 'true' || document.getElementById("fastOnly").checked;
 
     document.getElementById("distance").value = distance;
@@ -154,15 +152,17 @@ async function init() {
         await showChargers();
     } else {
         try {
-            const { lat, lon } = await getCurrentLocation();
-            console.log("Current location:", lat, lon);
-            initMap(lat, lon);
+            // Default to Expedia Group office in Seattle
+            const defaultLat = 47.6145;
+            const defaultLon = -122.3391;
+            initMap(defaultLat, defaultLon);
             if (loading) loading.style.display = "block";
-            const chargers = await getChargers(lat, lon, distance, fastOnly);
+            const chargers = await getChargers(defaultLat, defaultLon, distance, fastOnly);
             addChargersToMap(chargers);
+            addressInput.value = "2001 6th Ave, Seattle, WA 98121";
         } catch (error) {
             console.log("Geolocation failed:", error.message, "Code:", error.code);
-            let userMessage = "Couldn’t get your location—using default.";
+            let userMessage = "Couldn’t get your location.";
             if (error.code === 1) {
                 userMessage = "Location access denied. Please enable location permissions in your browser settings.";
             } else if (error.code === 2) {
@@ -170,8 +170,20 @@ async function init() {
             } else if (error.code === 3) {
                 userMessage = "Geolocation request timed out. Please check your network connection.";
             }
-            alert(userMessage);
-            addressInput.value = "Expedia Group Way West, Seattle, Washington 98119, United States";
+            userMessage += " Using default location. Click OK to try again or enter an address manually.";
+            if (confirm(userMessage)) {
+                try {
+                    const { lat, lon } = await getCurrentLocation();
+                    initMap(lat, lon);
+                    if (loading) loading.style.display = "block";
+                    const chargers = await getChargers(lat, lon, distance, fastOnly);
+                    addChargersToMap(chargers);
+                    return;
+                } catch (retryError) {
+                    console.log("Retry failed:", retryError.message);
+                }
+            }
+            addressInput.value = "2001 6th Ave, Seattle, WA 98121";
             await showChargers();
         } finally {
             if (loading) loading.style.display = "none";
