@@ -1,7 +1,7 @@
 [<img src="https://chargenear.org/favicon.png" alt="ChargeNear Favicon" width="16" height="16">chargenear.org](https://chargenear.org)
 
 
-![ChargeNear Map](https://github.com/hgottipati/ChargeNear/blob/main/screenshot.jpg)
+![ChargeNear Map](https://github.com/hgottipati/ChargeNear/blob/main/docs/screenshot.jpg)
 
 
 # ChargeNear
