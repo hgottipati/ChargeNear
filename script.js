@@ -60,19 +60,25 @@ async function getChargers(lat, lon, distance, fastOnly) {
     }
     return await response.json();
 }
+let markers = [];
 
 function addChargersToMap(chargers) {
-    console.log("Adding chargers:", chargers);
+    // Remove existing markers
+    markers.forEach(marker => marker.remove());
+    markers = [];
+
+    // Add new markers
     chargers.forEach(charger => {
-        const lat = charger.AddressInfo.Latitude;
-        const lon = charger.AddressInfo.Longitude;
-        const name = charger.AddressInfo.Title;
-        const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
-        new mapboxgl.Marker({ color: 'blue' })
-            .setLngLat([lon, lat])
-            .setPopup(new mapboxgl.Popup().setHTML(`${name}<br><a href="${googleMapsLink}" target="_blank">Open in Google Maps</a>`))
+        const { Latitude, Longitude, Title } = charger.AddressInfo;
+        const popup = new mapboxgl.Popup()
+            .setHTML(`<h3>${Title}</h3><a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank">Get Directions</a>`);
+        const marker = new mapboxgl.Marker({ color: 'blue' })
+            .setLngLat([Longitude, Latitude])
+            .setPopup(popup)
             .addTo(map);
+        markers.push(marker);
     });
+}
 }
 
 async function showChargers() {
