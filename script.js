@@ -79,6 +79,30 @@ async function showChargers() {
     }
 }
 
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error("Geolocation not supported by this browser"));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log("Geolocation success:", position);
+                resolve({ lat: position.coords.latitude, lon: position.coords.longitude });
+            },
+            (error) => {
+                console.error("Geolocation error:", error.message, "Code:", error.code);
+                reject(error);
+            },
+            { 
+                enableHighAccuracy: true, 
+                timeout: 15000, 
+                maximumAge: 0 
+            }
+        );
+    });
+}
+
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const defaultAddress = urlParams.get('address');
@@ -110,37 +134,28 @@ async function init() {
     } else {
         try {
             const { lat, lon } = await getCurrentLocation();
+            console.log("Current location:", lat, lon);
             initMap(lat, lon);
             if (loading) loading.style.display = "block";
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         } catch (error) {
-            console.log("Init geolocation failed:", error);
-            if (error.code === 1 || error.code === 2 || error.code === 3 || !navigator.geolocation) {
-                alert("Couldn’t get your location—using default.");
-                addressInput.value = "123 Main St, Austin, TX";
-                await showChargers();
-            } else {
-                alert("Geolocation failed: " + error.message);
+            console.log("Geolocation failed:", error.message, "Code:", error.code);
+            let userMessage = "Couldn’t get your location—using default.";
+            if (error.code === 1) {
+                userMessage = "Location access denied. Please enable location permissions in your browser settings.";
+            } else if (error.code === 2) {
+                userMessage = "Geolocation is not available. Please ensure your device supports location services.";
+            } else if (error.code === 3) {
+                userMessage = "Geolocation request timed out. Please check your network connection.";
             }
+            alert(userMessage);
+            addressInput.value = "Expedia Group Way West, Seattle, Washington 98119, United States";
+            await showChargers();
         } finally {
             if (loading) loading.style.display = "none";
         }
     }
-}
-
-function getCurrentLocation() {
-    return new Promise((resolve, reject) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
-                (error) => reject(error),
-                { timeout: 15000 }
-            );
-        } else {
-            reject(new Error("Geolocation not supported"));
-        }
-    });
 }
 
 window.onload = init;
