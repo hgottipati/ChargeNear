@@ -24,7 +24,7 @@
             left: 0;
             right: 0;
             background-color: #00355F;
-            padding: 1.25rem 0.75rem; /* 20px 12px at 16px base font */
+            padding: 1.25rem 0.75rem;
             z-index: 1000;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
@@ -37,7 +37,7 @@
 
         .header-content h1 {
             margin: 0;
-            font-size: 1.625rem; /* 26px at 16px base font */
+            font-size: 1.625rem;
             font-weight: bold;
             color: #EEC218;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -66,7 +66,7 @@
         }
 
         #controls input[type="text"], 
-        #controls input[type="number"], 
+        #controls select, 
         #controls button {
             padding: 5px;
             font-size: 14px;
@@ -96,25 +96,25 @@
         /* Mobile Adjustments */
         @media (max-width: 768px) {
             .header {
-                padding: 0.75rem 0.5rem; /* Smaller padding on mobile */
+                padding: 0.75rem 0.5rem;
             }
 
             .header-content h1 {
-                font-size: 1.25rem; /* 20px on mobile */
+                font-size: 1.25rem;
             }
 
             #controls {
-                top: calc(var(--header-height) + 5px); /* Less margin on mobile */
+                top: calc(var(--header-height) + 5px);
                 left: 5px;
                 right: 5px;
-                flex-direction: column; /* Stack controls vertically */
+                flex-direction: column;
                 gap: 8px;
             }
 
             #controls input[type="text"], 
-            #controls input[type="number"], 
+            #controls select, 
             #controls button {
-                width: 100%; /* Full width on mobile */
+                width: 100%;
                 box-sizing: border-box;
             }
 
@@ -125,7 +125,7 @@
 
         @media (max-width: 480px) {
             .header-content h1 {
-                font-size: 1rem; /* 16px on very small screens */
+                font-size: 1rem;
             }
 
             #controls {
@@ -142,7 +142,11 @@
     </div>
     <div id="controls">
         <input type="text" id="address" placeholder="Enter address">
-        <input type="number" id="distance" placeholder="Distance (miles)" value="5">
+        <select id="distance">
+            <option value="1">1 mile</option>
+            <option value="5" selected>5 miles</option>
+            <option value="10">10 miles</option>
+        </select>
         <label><input type="checkbox" id="fastOnly"> Fast chargers only</label>
         <button onclick="showChargers()">Search</button>
     </div>
@@ -156,9 +160,7 @@
             document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
         }
 
-        // Run on page load
         window.addEventListener('load', updateHeaderHeight);
-        // Run on window resize (to handle font size changes or orientation changes)
         window.addEventListener('resize', updateHeaderHeight);
     </script>
     <script src="script.js"></script>
