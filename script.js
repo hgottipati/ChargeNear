@@ -43,7 +43,10 @@ class GeolocationControl {
 
 function initMap(lat, lon) {
     try {
-        mapboxgl.accessToken = MAPBOX_TOKEN; // Use the token from config.js
+        if (typeof MAPBOX_TOKEN === 'undefined') {
+            throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
+        }
+        mapboxgl.accessToken = MAPBOX_TOKEN;
         map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v12',
@@ -74,6 +77,7 @@ function initMap(lat, lon) {
         });
     } catch (error) {
         console.error("Error initializing map:", error.message);
+        alert("Error initializing map: " + error.message);
     }
 }
 
@@ -106,7 +110,7 @@ function addSearchedLocationMarker(lat, lon, address) {
     el.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
             <path d="M12 0C5.373 0 0 5.373 0 12c0 8.013 10.432 21.666 11.15 22.62.37.5.92.5 1.29 0C13.568 33.666 24 20.013 24 12 24 5.373 18.627 0 12 0z" fill="#FF0000"/>
-            <circle cx="12" cy="12" r="4" fill="#8B0000"/>
+            <circle cx="12" cy="12" r="4" fill="#FFFFFF"/>
         </svg>
     `) + '")';
     el.style.backgroundSize = 'contain';
@@ -173,6 +177,9 @@ async function showChargers() {
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         } else {
+            if (typeof MAPBOX_TOKEN === 'undefined') {
+                throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
+            }
             const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}`);
             const data = await response.json();
             if (data.features.length === 0) {
@@ -217,47 +224,53 @@ async function init() {
     });
 
     const loading = document.getElementById("loading");
-    if (defaultAddress) {
-        addressInput.value = defaultAddress;
-        await showChargers();
-    } else {
-        try {
-            const defaultLat = 47.6290525;
-            const defaultLon = -122.3758909;
-            initMap(defaultLat, defaultLon);
-            if (loading) loading.style.display = "block";
-            const chargers = await getChargers(defaultLat, defaultLon, distance, fastOnly);
-            addChargersToMap(chargers);
-            addressInput.value = "1111 Expedia Group Wy W, Seattle, WA 98119";
-            addSearchedLocationMarker(defaultLat, defaultLon, "1111 Expedia Group Wy W, Seattle, WA 98119");
-        } catch (error) {
-            console.log("Geolocation failed:", error.message, "Code:", error.code);
-            let userMessage = "Couldn’t get your location.";
-            if (error.code === 1) {
-                userMessage = "Location access denied. Please enable location permissions in your browser settings.";
-            } else if (error.code === 2) {
-                userMessage = "Geolocation is not available. Please ensure your device supports location services.";
-            } else if (error.code === 3) {
-                userMessage = "Geolocation request timed out. Please check your network connection.";
-            }
-            userMessage += " Using default location. Click OK to try again or enter an address manually.";
-            if (confirm(userMessage)) {
-                try {
-                    const { lat, lon } = await getCurrentLocation();
-                    initMap(lat, lon);
-                    if (loading) loading.style.display = "block";
-                    const chargers = await getChargers(lat, lon, distance, fastOnly);
-                    addChargersToMap(chargers);
-                    return;
-                } catch (retryError) {
-                    console.log("Retry failed:", retryError.message);
-                }
-            }
-            addressInput.value = "1111 Expedia Group Wy W, Seattle, WA 98119";
-            await showChargers();
-        } finally {
-            if (loading) loading.style.display = "none";
+
+    // Try to get the user's current location first
+    try {
+        if (loading) loading.style.display = "block";
+        const { lat, lon } = await getCurrentLocation();
+        currentLocationCoords = { lat, lon };
+        initMap(lat, lon);
+        addCurrentLocationMarker(lat, lon);
+        const chargers = await getChargers(lat, lon, distance, fastOnly);
+        addChargersToMap(chargers);
+        addressInput.value = ""; // Keep the search bar empty
+    } catch (error) {
+        console.log("Geolocation failed:", error.message, "Code:", error.code);
+        let userMessage = "Couldn’t get your location.";
+        if (error.code === 1) {
+            userMessage = "Location access denied. Please enable location permissions in your browser settings.";
+        } else if (error.code === 2) {
+            userMessage = "Geolocation is not available. Please ensure your device supports location services.";
+        } else if (error.code === 3) {
+            userMessage = "Geolocation request timed out. Please check your network connection.";
         }
+        userMessage += " Using default location. Click OK to try again or enter an address manually.";
+        if (confirm(userMessage)) {
+            try {
+                const { lat, lon } = await getCurrentLocation();
+                currentLocationCoords = { lat, lon };
+                initMap(lat, lon);
+                addCurrentLocationMarker(lat, lon);
+                const chargers = await getChargers(lat, lon, distance, fastOnly);
+                addChargersToMap(chargers);
+                addressInput.value = "";
+                return;
+            } catch (retryError) {
+                console.log("Retry failed:", retryError.message);
+            }
+        }
+
+        // Fall back to default location
+        const defaultLat = 47.6290525;
+        const defaultLon = -122.3758909;
+        initMap(defaultLat, defaultLon);
+        const chargers = await getChargers(defaultLat, defaultLon, distance, fastOnly);
+        addChargersToMap(chargers);
+        addSearchedLocationMarker(defaultLat, defaultLon, "1111 Expedia Group Wy W, Seattle, WA 98119");
+        addressInput.value = ""; // Keep the search bar empty
+    } finally {
+        if (loading) loading.style.display = "none";
     }
 }
 
