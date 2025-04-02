@@ -7,13 +7,139 @@
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
     <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        #map { position: absolute; top: 100px; bottom: 0; width: 100%; }
-        #controls { position: absolute; top: 10px; left: 10px; z-index: 1; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
-        #loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; background: rgba(0,0,0,0.5); color: white; padding: 10px; border-radius: 5px; }
+        :root {
+            --header-height: 71px; /* Default header height (will be updated dynamically) */
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: Arial, sans-serif; 
+        }
+
+        /* Header */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #00355F;
+            padding: 1.25rem 0.75rem; /* 20px 12px at 16px base font */
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .header-content h1 {
+            margin: 0;
+            font-size: 1.625rem; /* 26px at 16px base font */
+            font-weight: bold;
+            color: #EEC218;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Map */
+        #map { 
+            position: absolute; 
+            top: var(--header-height); 
+            bottom: 0; 
+            width: 100%; 
+        }
+
+        /* Controls */
+        #controls { 
+            position: absolute; 
+            top: calc(var(--header-height) + 10px); 
+            left: 10px; 
+            z-index: 1; 
+            background: white; 
+            padding: 10px; 
+            border-radius: 5px; 
+            box-shadow: 0 0 5px rgba(0,0,0,0.3); 
+            display: flex; 
+            gap: 10px; 
+        }
+
+        #controls input[type="text"], 
+        #controls input[type="number"], 
+        #controls button {
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        #controls label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        /* Loading */
+        #loading { 
+            display: none; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 2; 
+            background: rgba(0,0,0,0.5); 
+            color: white; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 0.5rem; /* Smaller padding on mobile */
+            }
+
+            .header-content h1 {
+                font-size: 1.25rem; /* 20px on mobile */
+            }
+
+            #controls {
+                top: calc(var(--header-height) + 5px); /* Less margin on mobile */
+                left: 5px;
+                right: 5px;
+                flex-direction: column; /* Stack controls vertically */
+                gap: 8px;
+            }
+
+            #controls input[type="text"], 
+            #controls input[type="number"], 
+            #controls button {
+                width: 100%; /* Full width on mobile */
+                box-sizing: border-box;
+            }
+
+            #controls label {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content h1 {
+                font-size: 1rem; /* 16px on very small screens */
+            }
+
+            #controls {
+                padding: 8px;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="header" id="header">
+        <div class="header-content">
+            <h1>ChargeNear - Find EV Chargers Near You</h1>
+        </div>
+    </div>
     <div id="controls">
         <input type="text" id="address" placeholder="Enter address">
         <input type="number" id="distance" placeholder="Distance (miles)" value="5">
@@ -22,9 +148,19 @@
     </div>
     <div id="loading">Loading...</div>
     <div id="map"></div>
-    <div style="position: absolute; top: 0; left: 0; right: 0; background: #21759B; color: white; text-align: center; padding: 10px; font-size: 18px;">
-        ChargeNear - Find EV Chargers Near You
-    </div>
+    <script>
+        // Dynamically calculate header height and update CSS variable
+        function updateHeaderHeight() {
+            const header = document.getElementById('header');
+            const headerHeight = header.offsetHeight;
+            document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+        }
+
+        // Run on page load
+        window.addEventListener('load', updateHeaderHeight);
+        // Run on window resize (to handle font size changes or orientation changes)
+        window.addEventListener('resize', updateHeaderHeight);
+    </script>
     <script src="script.js"></script>
 </body>
 </html>

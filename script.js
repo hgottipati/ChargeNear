@@ -205,7 +205,8 @@ async function init() {
         }
         document.body.appendChild(datalist);
     });
-
+ 
+    
     const loading = document.getElementById("loading");
     if (defaultAddress) {
         addressInput.value = defaultAddress;
