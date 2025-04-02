@@ -8,210 +8,66 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
     <style>
         :root {
-            --header-height: 71px;
+            --header-height: 0px;
         }
-
-        body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: Arial, sans-serif; 
-        }
-
-        .header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            background-color: #00355F;
-            padding: 0.75rem;
-            z-index: 1000;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .header-content {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .header-content h1 {
+        body {
             margin: 0;
-            font-size: 1.625rem;
-            font-weight: bold;
-            color: #EEC218;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            flex: 1;
-            text-align: center;
+            font-family: Arial, sans-serif;
         }
-
-        .search-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 2;
-        }
-
-        .search-container input[type="text"] {
-            padding: 5px;
-            font-size: 14px;
+        #header {
+            background-color: #f8f8f8;
+            padding: 10px;
+            position: fixed;
+            top: 0;
             width: 100%;
-            max-width: 300px;
-            border: none;
-            border-radius: 3px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-
-        .search-container input[type="text"]::placeholder {
-            color: #d3d3d3; /* Light gray */
-            opacity: 1; /* Ensure full opacity for visibility */
-        }
-
-        .search-container button {
-            padding: 5px 10px;
-            font-size: 14px;
-            background-color: #EEC218;
-            color: #00355F;
-            border: none;
-            border-radius: 3px;
+        #map {
+            width: 100%;
+            height: calc(100vh - var(--header-height));
             cursor: pointer;
         }
-
-        #map { 
-            position: absolute; 
-            top: var(--header-height); 
-            bottom: 0; 
-            width: 100%; 
-            height: calc(100vh - var(--header-height));
-            display: block;
+        #loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
         }
-
-        #controls { 
-            position: absolute; 
-            top: calc(var(--header-height) + 10px); 
-            left: 10px; 
-            z-index: 1; 
-            background: white; 
-            padding: 10px; 
-            border-radius: 5px; 
-            box-shadow: 0 0 5px rgba(0,0,0,0.3); 
-            display: flex; 
-            gap: 10px; 
-        }
-
-        #controls select, 
-        #controls label {
-            font-size: 14px;
-        }
-
-        #controls select {
-            padding: 5px;
-        }
-
-        #controls label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        #loading { 
-            display: none; 
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-            z-index: 2; 
-            background: rgba(0,0,0,0.5); 
-            color: white; 
-            padding: 10px; 
-            border-radius: 5px; 
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                padding: 0.5rem;
-            }
-
-            .header-content {
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .header-content h1 {
-                font-size: 1.25rem;
-                text-align: center;
-            }
-
-            .search-container {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .search-container input[type="text"] {
-                max-width: 100%;
-            }
-
-            .search-container button {
-                display: none; /* Hide the Search button on mobile */
-            }
-
-            #controls {
-                top: calc(var(--header-height) + 5px);
-                left: 5px;
-                right: 5px;
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            #controls select {
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            #controls label {
-                justify-content: center;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .header-content h1 {
-                font-size: 1rem;
-            }
-
-            .search-container input[type="text"] {
-                font-size: 12px;
-                padding: 4px;
-            }
-
-            #controls {
-                padding: 8px;
-            }
+        /* Disable UI until map is ready */
+        body:not([data-map-ready="true"]) #address,
+        body:not([data-map-ready="true"]) #distance,
+        body:not([data-map-ready="true"]) #fastOnly,
+        body:not([data-map-ready="true"]) button {
+            pointer-events: none;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    <div class="header" id="header">
-        <div class="header-content">
-            <h1>ChargeNear - Find an EV Charger Near You</h1>
-            <div class="search-container">
-                <input type="text" id="address" placeholder="Search here">
-                <button onclick="showChargers()">Search</button>
-            </div>
-        </div>
-    </div>
-    <div id="controls">
+    <div id="header">
+        <!-- Header content (search bar, filters, etc.) -->
+        <input type="text" id="address" placeholder="Enter an address">
         <select id="distance">
             <option value="1">1 mile</option>
-            <option value="5" selected>5 miles</option>
+            <option value="5">5 miles</option>
             <option value="10">10 miles</option>
-            <option value="15">15 miles</option>
-            <option value="20">20 miles</option>
         </select>
-        <label><input type="checkbox" id="fastOnly"> Fast chargers only</label>
+        <input type="checkbox" id="fastOnly"> Fast Chargers Only
+        <button onclick="showChargers()">Search</button>
     </div>
-    <div id="loading">Loading...</div>
     <div id="map"></div>
+    <div id="loading">Loading...</div>
+
+    <script src="js/config.js" type="module"></script>
+    <script src="js/api.js" type="module"></script>
+    <script src="js/mapUtils.js" type="module"></script>
+    <script src="js/location.js" type="module"></script>
+    <script src="js/ui.js" type="module"></script>
+    <script src="js/script.js" type="module"></script>
+
     <script>
         // Dynamically calculate header height and update CSS variable
         function updateHeaderHeight() {
