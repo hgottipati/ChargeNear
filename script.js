@@ -2,7 +2,7 @@ let map;
 let markers = [];
 let currentLocationMarker = null;
 let searchedLocationMarker = null;
-let currentLocationCoords = null; // New variable to store current location coordinates
+let currentLocationCoords = null;
 
 class GeolocationControl {
     onAdd(map) {
@@ -20,7 +20,7 @@ class GeolocationControl {
         this._container.onclick = async () => {
             try {
                 const { lat, lon } = await getCurrentLocation();
-                currentLocationCoords = { lat, lon }; // Store the coordinates
+                currentLocationCoords = { lat, lon };
                 map.flyTo({ center: [lon, lat], zoom: 14 });
                 addCurrentLocationMarker(lat, lon);
                 const distance = document.getElementById("distance").value || "5";
@@ -43,7 +43,7 @@ class GeolocationControl {
 
 function initMap(lat, lon) {
     try {
-        mapboxgl.accessToken = 'pk.eyJ1IjoiaGdvdHRpcGF0aSIsImEiOiJjbTh0cjRzazMwZXFvMnNxMmExNTdqZjBlIn0.JffbXqKwr5oh2_kMapNyDw';
+        mapboxgl.accessToken = MAPBOX_TOKEN; // Use the token from config.js
         map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v12',
@@ -107,7 +107,8 @@ function addSearchedLocationMarker(lat, lon, address) {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
             <path d="M12 0C5.373 0 0 5.373 0 12c0 8.013 10.432 21.666 11.15 22.62.37.5.92.5 1.29 0C13.568 33.666 24 20.013 24 12 24 5.373 18.627 0 12 0z" fill="#FF0000"/>
             <circle cx="12" cy="12" r="4" fill="#8B0000"/>
-        </svg>`) + '")';
+        </svg>
+    `) + '")';
     el.style.backgroundSize = 'contain';
     el.style.backgroundRepeat = 'no-repeat';
     el.style.cursor = 'pointer';
@@ -156,32 +157,23 @@ async function showChargers() {
 
         let lat, lon;
 
-        // Check if the address is "Current Location"
         if (address.toLowerCase() === "current location") {
             if (currentLocationCoords) {
-                // Use stored coordinates if available
                 lat = currentLocationCoords.lat;
                 lon = currentLocationCoords.lon;
             } else {
-                // Fetch current location if coordinates aren't stored
                 const coords = await getCurrentLocation();
                 lat = coords.lat;
                 lon = coords.lon;
-                currentLocationCoords = { lat, lon }; // Store the coordinates
+                currentLocationCoords = { lat, lon };
             }
 
-            // Center the map on the current location
             map.flyTo({ center: [lon, lat], zoom: 14 });
-
-            // Add a marker for the current location
             addCurrentLocationMarker(lat, lon);
-
-            // Fetch chargers for the current location
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         } else {
-            // Geocode the address as before
-            const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}`);
+            const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}`);
             const data = await response.json();
             if (data.features.length === 0) {
                 throw new Error("Address not found");
@@ -189,10 +181,7 @@ async function showChargers() {
 
             [lon, lat] = data.features[0].center;
             map.flyTo({ center: [lon, lat], zoom: 14 });
-
-            // Add a marker for the searched address
             addSearchedLocationMarker(lat, lon, address);
-
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers);
         }
@@ -273,7 +262,7 @@ async function init() {
 }
 
 async function getCoordinates(address) {
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}&limit=1`;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
     const response = await fetch(url);
     const data = await response.json();
     if (data?.features?.length > 0) {
@@ -284,7 +273,7 @@ async function getCoordinates(address) {
 }
 
 async function getAddressSuggestions(query) {
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}&limit=5`;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=5`;
     const response = await fetch(url);
     const data = await response.json();
     return data.features?.map(feature => feature.place_name) || [];
@@ -325,8 +314,5 @@ function getCurrentLocation() {
         );
     });
 }
-
-
-
 
 window.onload = init;

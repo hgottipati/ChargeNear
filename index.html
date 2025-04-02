@@ -8,7 +8,7 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
     <style>
         :root {
-            --header-height: 71px; /* Default header height (will be updated dynamically) */
+            --header-height: 71px;
         }
 
         body { 
@@ -17,7 +17,6 @@
             font-family: Arial, sans-serif; 
         }
 
-        /* Header */
         .header {
             position: absolute;
             top: 0;
@@ -43,15 +42,15 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
-        /* Map */
         #map { 
             position: absolute; 
             top: var(--header-height); 
             bottom: 0; 
             width: 100%; 
+            height: calc(100vh - var(--header-height));
+            display: block;
         }
 
-        /* Controls */
         #controls { 
             position: absolute; 
             top: calc(var(--header-height) + 10px); 
@@ -79,7 +78,6 @@
             font-size: 14px;
         }
 
-        /* Loading */
         #loading { 
             display: none; 
             position: absolute; 
@@ -93,7 +91,6 @@
             border-radius: 5px; 
         }
 
-        /* Mobile Adjustments */
         @media (max-width: 768px) {
             .header {
                 padding: 0.75rem 0.5rem;
@@ -146,6 +143,8 @@
             <option value="1">1 mile</option>
             <option value="5" selected>5 miles</option>
             <option value="10">10 miles</option>
+            <option value="15">15 miles</option>
+            <option value="20">20 miles</option>
         </select>
         <label><input type="checkbox" id="fastOnly"> Fast chargers only</label>
         <button onclick="showChargers()">Search</button>
@@ -163,6 +162,7 @@
         window.addEventListener('load', updateHeaderHeight);
         window.addEventListener('resize', updateHeaderHeight);
     </script>
+    <script src="config.js"></script> <!-- Load config.js before script.js -->
     <script src="script.js"></script>
 </body>
 </html>
