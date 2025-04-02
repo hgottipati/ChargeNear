@@ -3,6 +3,134 @@ let markers = [];
 let currentLocationMarker = null;
 let searchedLocationMarker = null;
 let currentLocationCoords = null;
+let circleLayerId = 'radius-circle';
+let circleSourceId = 'radius-circle-source';
+let circleLabelMarker = null;
+
+// Function to generate a circle polygon (approximated with many points)
+function generateCircle(center, radiusInMiles, points = 64) {
+    if (!center || !center[0] || !center[1]) {
+        console.error("Invalid center coordinates for circle:", center);
+        return null;
+    }
+    const coords = { lat: center[1], lng: center[0] };
+    const kmPerMile = 1.60934;
+    const radiusInKm = radiusInMiles * kmPerMile;
+    const earthRadius = 6371; // Earth's radius in km
+    const pointsArray = [];
+
+    for (let i = 0; i < points; i++) {
+        const angle = (i / points) * 2 * Math.PI;
+        const dx = radiusInKm * Math.cos(angle);
+        const dy = radiusInKm * Math.sin(angle);
+
+        const lat = coords.lat + (dy / earthRadius) * (180 / Math.PI);
+        const lng = coords.lng + (dx / earthRadius) * (180 / Math.PI) / Math.cos(coords.lat * Math.PI / 180);
+
+        pointsArray.push([lng, lat]);
+    }
+    pointsArray.push(pointsArray[0]); // Close the polygon
+
+    return {
+        type: 'Feature',
+        geometry: {
+            type: 'Polygon',
+            coordinates: [pointsArray]
+        }
+    };
+}
+
+// Function to add or update the circle on the map
+function addCircleToMap(center, radiusInMiles) {
+    if (!center || !radiusInMiles) {
+        console.error("Cannot add circle: Invalid center or radius", { center, radiusInMiles });
+        return;
+    }
+
+    const circleGeoJSON = generateCircle(center, radiusInMiles);
+    if (!circleGeoJSON) {
+        console.error("Failed to generate circle GeoJSON");
+        return;
+    }
+
+    // Ensure the map is loaded before adding the layer
+    if (!map.loaded()) {
+        map.on('load', () => {
+            addCircleLayer(center, radiusInMiles, circleGeoJSON);
+        });
+    } else {
+        addCircleLayer(center, radiusInMiles, circleGeoJSON);
+    }
+}
+
+function addCircleLayer(center, radiusInMiles, circleGeoJSON) {
+    // If the source exists, update it; otherwise, add it
+    if (map.getSource(circleSourceId)) {
+        map.getSource(circleSourceId).setData(circleGeoJSON);
+    } else {
+        map.addSource(circleSourceId, {
+            type: 'geojson',
+            data: circleGeoJSON
+        });
+
+        map.addLayer({
+            id: circleLayerId,
+            type: 'fill',
+            source: circleSourceId,
+            paint: {
+                'fill-color': '#EEC218',
+                'fill-opacity': 0.3
+            }
+        });
+
+        map.addLayer({
+            id: `${circleLayerId}-outline`,
+            type: 'line',
+            source: circleSourceId,
+            paint: {
+                'line-color': '#EEC218',
+                'line-width': 2
+            }
+        });
+    }
+
+    // Remove existing label marker if it exists
+    if (circleLabelMarker) {
+        circleLabelMarker.remove();
+    }
+
+    // Calculate walking time (assuming 3 miles/hour walking speed)
+    let labelText;
+    if (radiusInMiles <= 1) {
+        const walkingTimeMinutes = Math.round((radiusInMiles / 3) * 60);
+        labelText = `${walkingTimeMinutes} min walk`;
+    } else {
+        labelText = `${radiusInMiles} miles`;
+    }
+
+    // Position the label on the circle's edge (at 0 degrees, i.e., due east)
+    const kmPerMile = 1.60934;
+    const radiusInKm = radiusInMiles * kmPerMile;
+    const earthRadius = 6371; // Earth's radius in km
+    const angle = 0; // 0 degrees (east)
+    const dx = radiusInKm * Math.cos(angle);
+    const dy = radiusInKm * Math.sin(angle);
+    const labelLat = center[1] + (dy / earthRadius) * (180 / Math.PI);
+    const labelLon = center[0] + (dx / earthRadius) * (180 / Math.PI) / Math.cos(center[1] * Math.PI / 180);
+
+    const labelEl = document.createElement('div');
+    labelEl.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    labelEl.style.color = 'white';
+    labelEl.style.padding = '2px 6px';
+    labelEl.style.borderRadius = '3px';
+    labelEl.style.fontSize = '12px';
+    labelEl.style.whiteSpace = 'nowrap';
+    labelEl.innerText = labelText;
+
+    circleLabelMarker = new mapboxgl.Marker({ element: labelEl })
+        .setLngLat([labelLon, labelLat])
+        .addTo(map);
+}
 
 class GeolocationControl {
     onAdd(map) {
@@ -26,7 +154,8 @@ class GeolocationControl {
                 const distance = document.getElementById("distance").value || "5";
                 const fastOnly = document.getElementById("fastOnly").checked;
                 const chargers = await getChargers(lat, lon, distance, fastOnly);
-                addChargersToMap(chargers);
+                addChargersToMap(chargers, [lon, lat], parseFloat(distance));
+                addCircleToMap([lon, lat], parseFloat(distance));
                 document.getElementById("address").value = "Current Location";
             } catch (error) {
                 alert("Failed to get current location: " + error.message);
@@ -54,7 +183,7 @@ function initMap(lat, lon) {
             zoom: 12
         });
 
-        console.log("Map initialized successfully");
+        console.log("Map initialized successfully with center:", [lon, lat]);
 
         map.addControl(new mapboxgl.NavigationControl());
         map.addControl(new GeolocationControl(), 'top-right');
@@ -70,7 +199,8 @@ function initMap(lat, lon) {
             const fastOnly = document.getElementById("fastOnly").checked;
             try {
                 const chargers = await getChargers(center.lat, center.lng, distance, fastOnly);
-                addChargersToMap(chargers);
+                addChargersToMap(chargers, [center.lng, center.lat], parseFloat(document.getElementById("distance").value || "5"));
+                addCircleToMap([center.lng, center.lat], parseFloat(document.getElementById("distance").value || "5"));
             } catch (error) {
                 console.error("Error fetching chargers on map move:", error.message);
             }
@@ -124,20 +254,42 @@ function addSearchedLocationMarker(lat, lon, address) {
         .addTo(map);
 }
 
-function addChargersToMap(chargers) {
+function addChargersToMap(chargers, center, radiusInMiles) {
+    if (!center || !center[0] || !center[1]) {
+        console.error("Invalid center coordinates for chargers:", center);
+        return;
+    }
+
     markers.forEach(marker => marker.remove());
     markers = [];
+
+    const kmPerMile = 1.60934;
+    const radiusInKm = radiusInMiles * kmPerMile;
+    const earthRadius = 6371; // Earth's radius in km
 
     chargers.forEach(charger => {
         const { Latitude, Longitude, Title } = charger.AddressInfo;
         const walkingDistance = charger.walkingDistanceMiles || 'N/A';
+
+        // Calculate if the charger is within the radius
+        const dLat = (Latitude - center[1]) * (Math.PI / 180);
+        const dLon = (Longitude - center[0]) * (Math.PI / 180);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(center[1] * (Math.PI / 180)) * Math.cos(Latitude * (Math.PI / 180)) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distanceInKm = earthRadius * c;
+        const distanceInMiles = distanceInKm / kmPerMile;
+
+        const isWithinRadius = distanceInMiles <= radiusInMiles;
+
         const popup = new mapboxgl.Popup()
             .setHTML(`
                 <h3>${Title}</h3>
                 <p>Walking Distance: ${walkingDistance} miles</p>
                 <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank">Get Directions</a>
             `);
-        const marker = new mapboxgl.Marker({ color: 'blue' })
+        const marker = new mapboxgl.Marker({ color: isWithinRadius ? 'green' : 'blue' })
             .setLngLat([Longitude, Latitude])
             .setPopup(popup)
             .addTo(map);
@@ -175,28 +327,54 @@ async function showChargers() {
             map.flyTo({ center: [lon, lat], zoom: 14 });
             addCurrentLocationMarker(lat, lon);
             const chargers = await getChargers(lat, lon, distance, fastOnly);
-            addChargersToMap(chargers);
+            addChargersToMap(chargers, [lon, lat], parseFloat(distance));
+            addCircleToMap([lon, lat], parseFloat(distance));
         } else {
             if (typeof MAPBOX_TOKEN === 'undefined') {
                 throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
             }
             const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}`);
             const data = await response.json();
-            if (data.features.length === 0) {
-                throw new Error("Address not found");
+            console.log("Geocoding response:", data);
+            if (!data.features || data.features.length === 0) {
+                throw new Error("Address not found. Please try a different address.");
             }
 
             [lon, lat] = data.features[0].center;
             map.flyTo({ center: [lon, lat], zoom: 14 });
             addSearchedLocationMarker(lat, lon, address);
             const chargers = await getChargers(lat, lon, distance, fastOnly);
-            addChargersToMap(chargers);
+            addChargersToMap(chargers, [lon, lat], parseFloat(distance));
+            addCircleToMap([lon, lat], parseFloat(distance));
         }
     } catch (error) {
+        console.error("Error in showChargers:", error.message);
         alert("Error: " + error.message);
     } finally {
         if (loading) loading.style.display = "none";
     }
+}
+
+async function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error("Geolocation is not supported by your browser."));
+        }
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                console.log("Successfully retrieved current location:", position.coords);
+                resolve({
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                });
+            },
+            error => {
+                console.error("Error getting current location:", error.message, "Code:", error.code);
+                reject(error);
+            },
+            { timeout: 10000, enableHighAccuracy: true }
+        );
+    });
 }
 
 async function init() {
@@ -223,9 +401,29 @@ async function init() {
         document.body.appendChild(datalist);
     });
 
+    document.getElementById("distance").addEventListener("change", async () => {
+        const address = document.getElementById("address").value;
+        const distance = document.getElementById("distance").value || "5";
+        const fastOnly = document.getElementById("fastOnly").checked;
+
+        let lat, lon;
+        if (address.toLowerCase() === "current location" && currentLocationCoords) {
+            lat = currentLocationCoords.lat;
+            lon = currentLocationCoords.lon;
+        } else {
+            const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}`);
+            const data = await response.json();
+            if (!data.features || data.features.length === 0) return;
+            [lon, lat] = data.features[0].center;
+        }
+
+        const chargers = await getChargers(lat, lon, distance, fastOnly);
+        addChargersToMap(chargers, [lon, lat], parseFloat(distance));
+        addCircleToMap([lon, lat], parseFloat(distance));
+    });
+
     const loading = document.getElementById("loading");
 
-    // Try to get the user's current location first
     try {
         if (loading) loading.style.display = "block";
         const { lat, lon } = await getCurrentLocation();
@@ -233,8 +431,9 @@ async function init() {
         initMap(lat, lon);
         addCurrentLocationMarker(lat, lon);
         const chargers = await getChargers(lat, lon, distance, fastOnly);
-        addChargersToMap(chargers);
-        addressInput.value = ""; // Keep the search bar empty
+        addChargersToMap(chargers, [lon, lat], parseFloat(distance));
+        addCircleToMap([lon, lat], parseFloat(distance));
+        addressInput.value = "";
     } catch (error) {
         console.log("Geolocation failed:", error.message, "Code:", error.code);
         let userMessage = "Couldn’t get your location.";
@@ -253,7 +452,8 @@ async function init() {
                 initMap(lat, lon);
                 addCurrentLocationMarker(lat, lon);
                 const chargers = await getChargers(lat, lon, distance, fastOnly);
-                addChargersToMap(chargers);
+                addChargersToMap(chargers, [lon, lat], parseFloat(distance));
+                addCircleToMap([lon, lat], parseFloat(distance));
                 addressInput.value = "";
                 return;
             } catch (retryError) {
@@ -261,14 +461,14 @@ async function init() {
             }
         }
 
-        // Fall back to default location
         const defaultLat = 47.6290525;
         const defaultLon = -122.3758909;
         initMap(defaultLat, defaultLon);
         const chargers = await getChargers(defaultLat, defaultLon, distance, fastOnly);
-        addChargersToMap(chargers);
+        addChargersToMap(chargers, [defaultLon, defaultLat], parseFloat(distance));
         addSearchedLocationMarker(defaultLat, defaultLon, "1111 Expedia Group Wy W, Seattle, WA 98119");
-        addressInput.value = ""; // Keep the search bar empty
+        addCircleToMap([defaultLon, defaultLat], parseFloat(distance));
+        addressInput.value = "";
     } finally {
         if (loading) loading.style.display = "none";
     }
@@ -302,30 +502,4 @@ async function getChargers(lat, lon, distance, fastOnly) {
     }
     return await response.json();
 }
-
-
-function getCurrentLocation() {
-    return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-            reject(new Error("Geolocation not supported by this browser"));
-            return;
-        }
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                console.log("Geolocation success:", position);
-                resolve({ lat: position.coords.latitude, lon: position.coords.longitude });
-            },
-            (error) => {
-                console.error("Geolocation error:", error.message, "Code:", error.code);
-                reject(error);
-            },
-            { 
-                enableHighAccuracy: true, 
-                timeout: 15000, 
-                maximumAge: 0 
-            }
-        );
-    });
-}
-
 window.onload = init;

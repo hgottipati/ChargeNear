@@ -58,7 +58,7 @@
             padding: 5px;
             font-size: 14px;
             width: 100%;
-            max-width: 300px;
+            max-width: 250px;
             border: none;
             border-radius: 3px;
         }
@@ -159,9 +159,11 @@
             #controls {
                 top: calc(var(--header-height) + 5px);
                 left: 5px;
-                right: 5px;
-                flex-direction: column;
-                gap: 8px;
+                right: auto; /* Remove spanning across the screen */
+                width: 150px; /* Narrower width */
+                flex-direction: column; /* Stack vertically */
+                gap: 10px;
+                padding: 15px; /* Thicker padding */
             }
 
             #controls select {
