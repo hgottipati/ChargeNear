@@ -19,7 +19,7 @@ async function init() {
     try {
         if (loading) loading.style.display = "block";
         const { lat, lon } = await getCurrentLocation();
-        currentLocationCoords.lat = lat; // Update properties
+        currentLocationCoords.lat = lat;
         currentLocationCoords.lon = lon;
         await initMap(lat, lon);
         addCurrentLocationMarker(lat, lon);
@@ -27,6 +27,7 @@ async function init() {
         addChargersToMap(chargers, [lon, lat], parseFloat(distance));
         addCircleToMap([lon, lat], parseFloat(distance));
         document.getElementById("address").value = "";
+        document.body.setAttribute('data-map-ready', 'true'); // Enable UI
     } catch (error) {
         console.log("Geolocation failed:", error.message, "Code:", error.code);
         let userMessage = "Couldn’t get your location.";
@@ -37,24 +38,44 @@ async function init() {
         } else if (error.code === 3) {
             userMessage = "Geolocation request timed out. Please check your network connection.";
         }
-        userMessage += " Using default location. Click OK to try again or enter an address manually.";
-        if (confirm(userMessage)) {
+
+        // Show the custom modal
+        const modal = document.getElementById("location-error-modal");
+        const messageElement = document.getElementById("location-error-message");
+        messageElement.textContent = `${userMessage} We can use a default location or you can enter an address manually.`;
+        modal.style.display = "flex";
+
+        // Return a promise that resolves based on user action
+        const userAction = await new Promise((resolve) => {
+            document.getElementById("retry-location").onclick = () => {
+                modal.style.display = "none";
+                resolve(true); // Retry
+            };
+            document.getElementById("use-default-location").onclick = () => {
+                modal.style.display = "none";
+                resolve(false); // Use default location
+            };
+        });
+
+        if (userAction) {
+            // Retry logic
             try {
                 const { lat, lon } = await getCurrentLocation();
-                currentLocationCoords.lat = lat; // Update properties
+                currentLocationCoords.lat = lat;
                 currentLocationCoords.lon = lon;
                 await initMap(lat, lon);
                 addCurrentLocationMarker(lat, lon);
                 const chargers = await getChargers(lat, lon, distance, fastOnly);
                 addChargersToMap(chargers, [lon, lat], parseFloat(distance));
                 addCircleToMap([lon, lat], parseFloat(distance));
-                document.getElementById("address").value = "";
+                document.body.setAttribute('data-map-ready', 'true'); // Enable UI
                 return;
             } catch (retryError) {
                 console.log("Retry failed:", retryError.message);
             }
         }
 
+        // Use default location
         const defaultLat = 47.6290525;
         const defaultLon = -122.3758909;
         await initMap(defaultLat, defaultLon);
@@ -62,7 +83,7 @@ async function init() {
         addChargersToMap(chargers, [defaultLon, defaultLat], parseFloat(distance));
         addSearchedLocationMarker(defaultLat, defaultLon, "1111 Expedia Group Wy W, Seattle, WA 98119");
         addCircleToMap([defaultLon, defaultLat], parseFloat(distance));
-        document.getElementById("address").value = "";
+        document.body.setAttribute('data-map-ready', 'true'); // Enable UI
     } finally {
         if (loading) loading.style.display = "none";
     }
