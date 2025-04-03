@@ -15,6 +15,8 @@ async function init() {
     setupUI(showChargers, addChargersToMap, addCircleToMap);
 
     const loading = document.getElementById("loading");
+    const modal = document.getElementById("location-error-modal");
+    const messageElement = document.getElementById("location-error-message");
 
     try {
         if (loading) loading.style.display = "block";
@@ -27,7 +29,7 @@ async function init() {
         addChargersToMap(chargers, [lon, lat], parseFloat(distance));
         addCircleToMap([lon, lat], parseFloat(distance));
         document.getElementById("address").value = "";
-        document.body.setAttribute('data-map-ready', 'true'); // Enable UI
+        document.body.setAttribute('data-map-ready', 'true');
     } catch (error) {
         console.log("Geolocation failed:", error.message, "Code:", error.code);
         let userMessage = "Couldn’t get your location.";
@@ -39,27 +41,28 @@ async function init() {
             userMessage = "Geolocation request timed out. Please check your network connection.";
         }
 
-        // Show the custom modal
-        const modal = document.getElementById("location-error-modal");
-        const messageElement = document.getElementById("location-error-message");
+        // Show the modal and hide loading
+        if (loading) loading.style.display = "none";
         messageElement.textContent = `${userMessage} We can use a default location or you can enter an address manually.`;
         modal.style.display = "flex";
+        document.body.setAttribute('data-map-ready', 'true'); // Enable buttons
 
-        // Return a promise that resolves based on user action
+        // Wait for user action
         const userAction = await new Promise((resolve) => {
             document.getElementById("retry-location").onclick = () => {
                 modal.style.display = "none";
-                resolve(true); // Retry
+                resolve(true);
             };
             document.getElementById("use-default-location").onclick = () => {
                 modal.style.display = "none";
-                resolve(false); // Use default location
+                resolve(false);
             };
         });
 
         if (userAction) {
             // Retry logic
             try {
+                if (loading) loading.style.display = "block";
                 const { lat, lon } = await getCurrentLocation();
                 currentLocationCoords.lat = lat;
                 currentLocationCoords.lon = lon;
@@ -68,22 +71,26 @@ async function init() {
                 const chargers = await getChargers(lat, lon, distance, fastOnly);
                 addChargersToMap(chargers, [lon, lat], parseFloat(distance));
                 addCircleToMap([lon, lat], parseFloat(distance));
-                document.body.setAttribute('data-map-ready', 'true'); // Enable UI
-                return;
+                document.body.setAttribute('data-map-ready', 'true');
             } catch (retryError) {
                 console.log("Retry failed:", retryError.message);
+                alert("Retry failed. Please try again or use the default location.");
+            } finally {
+                if (loading) loading.style.display = "none";
             }
+        } else {
+            // Use default location
+            if (loading) loading.style.display = "block";
+            const defaultLat = 47.6290525;
+            const defaultLon = -122.3758909;
+            await initMap(defaultLat, defaultLon);
+            const chargers = await getChargers(defaultLat, defaultLon, distance, fastOnly);
+            addChargersToMap(chargers, [defaultLon, defaultLat], parseFloat(distance));
+            addSearchedLocationMarker(defaultLat, defaultLon, "1111 Expedia Group Wy W, Seattle, WA 98119");
+            addCircleToMap([defaultLon, defaultLat], parseFloat(distance));
+            document.body.setAttribute('data-map-ready', 'true');
+            if (loading) loading.style.display = "none";
         }
-
-        // Use default location
-        const defaultLat = 47.6290525;
-        const defaultLon = -122.3758909;
-        await initMap(defaultLat, defaultLon);
-        const chargers = await getChargers(defaultLat, defaultLon, distance, fastOnly);
-        addChargersToMap(chargers, [defaultLon, defaultLat], parseFloat(distance));
-        addSearchedLocationMarker(defaultLat, defaultLon, "1111 Expedia Group Wy W, Seattle, WA 98119");
-        addCircleToMap([defaultLon, defaultLat], parseFloat(distance));
-        document.body.setAttribute('data-map-ready', 'true'); // Enable UI
     } finally {
         if (loading) loading.style.display = "none";
     }
