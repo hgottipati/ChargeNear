@@ -1,7 +1,7 @@
 import { initMap, addCurrentLocationMarker, addSearchedLocationMarker, addChargersToMap, addCircleToMap } from './mapUtils.js';
 import { getCurrentLocation, showChargers, currentLocationCoords } from './location.js';
 import { setupUI } from './ui.js';
-import { getChargers } from './api.js'; // Add this import
+import { getChargers } from './api.js';
 
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -19,7 +19,8 @@ async function init() {
     try {
         if (loading) loading.style.display = "block";
         const { lat, lon } = await getCurrentLocation();
-        currentLocationCoords = { lat, lon };
+        currentLocationCoords.lat = lat; // Update properties
+        currentLocationCoords.lon = lon;
         await initMap(lat, lon);
         addCurrentLocationMarker(lat, lon);
         const chargers = await getChargers(lat, lon, distance, fastOnly);
@@ -40,7 +41,8 @@ async function init() {
         if (confirm(userMessage)) {
             try {
                 const { lat, lon } = await getCurrentLocation();
-                currentLocationCoords = { lat, lon };
+                currentLocationCoords.lat = lat; // Update properties
+                currentLocationCoords.lon = lon;
                 await initMap(lat, lon);
                 addCurrentLocationMarker(lat, lon);
                 const chargers = await getChargers(lat, lon, distance, fastOnly);

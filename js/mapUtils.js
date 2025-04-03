@@ -1,5 +1,6 @@
-import { getChargers } from './api.js'; // Add this import
-import { getCurrentLocation, currentLocationCoords } from './location.js'; // Add this import
+import { getChargers } from './api.js';
+import { getCurrentLocation, currentLocationCoords } from './location.js';
+
 let mapInstance = null;
 let mapReadyPromise = null;
 export let markers = [];
@@ -33,6 +34,7 @@ class MapManager {
 
             this.map.on('load', () => {
                 console.log("Map loaded successfully with center:", [lon, lat]);
+                document.body.setAttribute('data-map-ready', 'true');
                 this.resolveReady(this.map);
             });
 
@@ -225,7 +227,7 @@ export class GeolocationControl {
         this._container.onclick = async () => {
             try {
                 const { lat, lon } = await getCurrentLocation();
-                currentLocationCoords.lat = lat; // Update the exported variable
+                currentLocationCoords.lat = lat; // Update properties instead of reassigning
                 currentLocationCoords.lon = lon;
                 const map = await getMap();
                 map.flyTo({ center: [lon, lat], zoom: 14 });
