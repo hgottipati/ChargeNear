@@ -3,6 +3,9 @@ import { getCurrentLocation, showChargers, currentLocationCoords } from './locat
 import { setupUI } from './ui.js';
 import { getChargers } from './api.js';
 
+// Global flag to indicate map readiness
+window.isMapReady = false;
+
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const defaultAddress = urlParams.get('address');
@@ -12,6 +15,7 @@ async function init() {
     document.getElementById("distance").value = distance;
     document.getElementById("fastOnly").checked = fastOnly;
 
+    // Setup UI but don't trigger map-dependent actions yet
     setupUI(showChargers, addChargersToMap, addCircleToMap);
 
     const loading = document.getElementById("loading");
@@ -30,6 +34,7 @@ async function init() {
         addCircleToMap([lon, lat], parseFloat(distance));
         document.getElementById("address").value = "";
         document.body.setAttribute('data-map-ready', 'true');
+        window.isMapReady = true; // Signal that the map is ready
     } catch (error) {
         console.log("Geolocation failed:", error.message, "Code:", error.code);
         let userMessage = "Couldn’t get your location.";
@@ -41,13 +46,11 @@ async function init() {
             userMessage = "Geolocation request timed out. Please check your network connection.";
         }
 
-        // Show the modal and hide loading
         if (loading) loading.style.display = "none";
         messageElement.textContent = `${userMessage} We can use a default location or you can enter an address manually.`;
         modal.style.display = "flex";
-        document.body.setAttribute('data-map-ready', 'true'); // Enable buttons
+        document.body.setAttribute('data-map-ready', 'true');
 
-        // Wait for user action
         const userAction = await new Promise((resolve) => {
             document.getElementById("retry-location").onclick = () => {
                 modal.style.display = "none";
@@ -60,7 +63,6 @@ async function init() {
         });
 
         if (userAction) {
-            // Retry logic
             try {
                 if (loading) loading.style.display = "block";
                 const { lat, lon } = await getCurrentLocation();
@@ -72,6 +74,7 @@ async function init() {
                 addChargersToMap(chargers, [lon, lat], parseFloat(distance));
                 addCircleToMap([lon, lat], parseFloat(distance));
                 document.body.setAttribute('data-map-ready', 'true');
+                window.isMapReady = true; // Signal that the map is ready
             } catch (retryError) {
                 console.log("Retry failed:", retryError.message);
                 alert("Retry failed. Please try again or use the default location.");
@@ -79,7 +82,6 @@ async function init() {
                 if (loading) loading.style.display = "none";
             }
         } else {
-            // Use default location
             if (loading) loading.style.display = "block";
             const defaultLat = 47.6290525;
             const defaultLon = -122.3758909;
@@ -89,11 +91,15 @@ async function init() {
             addSearchedLocationMarker(defaultLat, defaultLon, "1111 Expedia Group Wy W, Seattle, WA 98119");
             addCircleToMap([defaultLon, defaultLat], parseFloat(distance));
             document.body.setAttribute('data-map-ready', 'true');
+            window.isMapReady = true; // Signal that the map is ready
             if (loading) loading.style.display = "none";
         }
     } finally {
         if (loading) loading.style.display = "none";
     }
+
+    // Notify UI that the map is ready (in case the above block didn't set it)
+    window.isMapReady = true;
 }
 
 // Expose showChargers globally so it can be called from index.html

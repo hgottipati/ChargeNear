@@ -30,14 +30,27 @@ export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
         }
     });
 
+    // Automatic update when distance changes
     distanceSelect.addEventListener("change", async () => {
         const distance = distanceSelect.value || "5";
         const fastOnly = fastOnlyCheckbox.checked;
-    
+
         try {
+            // Wait for the map to be ready
+            await new Promise((resolve) => {
+                const checkMapReady = () => {
+                    if (window.isMapReady) {
+                        resolve();
+                    } else {
+                        setTimeout(checkMapReady, 100);
+                    }
+                };
+                checkMapReady();
+            });
+
             const map = await getMap();
             let lat, lon;
-    
+
             if (currentLocationCoords.lat && currentLocationCoords.lon && (!addressInput.value || addressInput.value.toLowerCase() === "current location")) {
                 lat = currentLocationCoords.lat;
                 lon = currentLocationCoords.lon;
@@ -52,7 +65,7 @@ export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
             } else {
                 [lon, lat] = map.getCenter().toArray();
             }
-    
+
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers, [lon, lat], parseFloat(distance));
             addCircleToMap([lon, lat], parseFloat(distance));
@@ -62,6 +75,18 @@ export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
         }
     });
 
-    // Initial setup (trigger an update on page load to match the default distance)
-    distanceSelect.dispatchEvent(new Event('change'));
+    // Wait for the map to be ready before triggering the initial change
+    (async () => {
+        await new Promise((resolve) => {
+            const checkMapReady = () => {
+                if (window.isMapReady) {
+                    resolve();
+                } else {
+                    setTimeout(checkMapReady, 100);
+                }
+            };
+            checkMapReady();
+        });
+        distanceSelect.dispatchEvent(new Event('change'));
+    })();
 }
