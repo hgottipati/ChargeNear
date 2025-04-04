@@ -1,78 +1,51 @@
-import { getChargers, getAddressSuggestions } from './api.js';
-import { currentLocationCoords, getCurrentLocation } from './location.js';
-import { getMap, addChargersToMap, addCircleToMap } from './mapUtils.js';
+// api.js
+// This file handles API requests for the ChargeNear application, including fetching charger data and address suggestions.
 
-export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
-    const addressInput = document.getElementById("address");
-    const distanceSelect = document.getElementById("distance");
-    const fastOnlyCheckbox = document.getElementById("fastOnly");
+export async function getChargers(lat, lon, distance, fastOnly) {
+    try {
+        // Convert distance to a number to ensure consistency
+        const radius = parseFloat(distance);
+        // Set a higher limit to fetch more chargers (adjust based on API capabilities)
+        const limit = 50; // Increase this if the API supports it and more chargers are needed
 
-    // Address input suggestions
-    addressInput.addEventListener("input", async () => {
-        const query = addressInput.value;
-        if (query.length < 3) return;
-        const suggestions = await getAddressSuggestions(query);
-        const datalist = document.createElement('datalist');
-        datalist.id = 'address-suggestions';
-        datalist.innerHTML = suggestions.map(s => `<option value="${s}">`).join("");
-        addressInput.setAttribute('list', 'address-suggestions');
-        if (document.getElementById('address-suggestions')) {
-            document.getElementById('address-suggestions').remove();
+        // Construct the API URL with query parameters
+        // Replace 'https://your-api-endpoint/chargers' with your actual charger data API endpoint
+        const url = `https://your-api-endpoint/chargers?lat=${lat}&lon=${lon}&radius=${radius}&fastOnly=${fastOnly}&limit=${limit}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch chargers: ${response.status} ${response.statusText}`);
         }
-        document.body.appendChild(datalist);
-    });
+        
+        const data = await response.json();
+        const chargers = data.chargers || []; // Adjust based on your API's response structure
+        
+        // Log the number of chargers fetched for debugging
+        console.log(`Fetched ${chargers.length} chargers within ${radius} miles from lat:${lat}, lon:${lon}`, chargers);
+        
+        return chargers;
+    } catch (error) {
+        console.error("Error fetching chargers:", error.message);
+        throw error; // Re-throw to allow the caller to handle the error
+    }
+}
 
-    // Search on Enter key press
-    addressInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            showChargers();
+export async function getAddressSuggestions(query) {
+    try {
+        // Replace with your actual geocoding API endpoint (e.g., Mapbox Geocoding API)
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch address suggestions: ${response.status} ${response.statusText}`);
         }
-    });
-
-    // Automatic update when distance changes
-    distanceSelect.addEventListener("change", async () => {
-        const distance = distanceSelect.value || "5";
-        const fastOnly = fastOnlyCheckbox.checked;
-
-        try {
-            const map = await getMap();
-            let lat, lon;
-
-            // Use current map center if no specific address is set
-            if (!addressInput.value || addressInput.value.toLowerCase() === "current location") {
-                if (currentLocationCoords.lat && currentLocationCoords.lon) {
-                    lat = currentLocationCoords.lat;
-                    lon = currentLocationCoords.lon;
-                } else {
-                    const coords = await getCurrentLocation();
-                    lat = coords.lat;
-                    lon = coords.lon;
-                    currentLocationCoords.lat = lat;
-                    currentLocationCoords.lon = lon;
-                }
-            } else {
-                // Use the last searched address or current map center as fallback
-                const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addressInput.value)}.json?access_token=${MAPBOX_TOKEN}`);
-                const data = await response.json();
-                if (!data.features || data.features.length === 0) {
-                    [lon, lat] = map.getCenter().toArray(); // Fallback to current map center
-                } else {
-                    [lon, lat] = data.features[0].center;
-                }
-            }
-
-            const chargers = await getChargers(lat, lon, distance, fastOnly);
-            addChargersToMap(chargers, [lon, lat], parseFloat(distance));
-            addCircleToMap([lon, lat], parseFloat(distance));
-        } catch (error) {
-            console.error("Error updating distance filter:", error.message);
-            alert("Error updating map: " + error.message);
-        }
-    });
-
-    // Initial setup (optional, if you want to trigger an update on page load)
-    if (distanceSelect.value) {
-        distanceSelect.dispatchEvent(new Event('change'));
+        
+        const data = await response.json();
+        const suggestions = data.features.map(feature => feature.place_name);
+        
+        return suggestions;
+    } catch (error) {
+        console.error("Error fetching address suggestions:", error.message);
+        throw error;
     }
 }
