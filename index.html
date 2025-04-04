@@ -5,156 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChargeNear</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
-    <style>
-        :root {
-            --header-height: 0px;
-        }
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        #header {
-            background-color: #f8f8f8;
-            padding: 10px;
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #map {
-            width: 100%;
-            height: calc(100vh - var(--header-height));
-            cursor: pointer;
-        }
-        #loading {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1001;
-        }
-        /* Disable UI until map is ready */
-        body:not([data-map-ready="true"]) #address,
-        body:not([data-map-ready="true"]) #distance,
-        body:not([data-map-ready="true"]) #fastOnly,
-        body:not([data-map-ready="true"]) button {
-            pointer-events: none;
-            opacity: 0.5;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .modal-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        .modal-buttons button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #retry-location {
-            background-color: #4285F4;
-            color: white;
-        }
-        #use-default-location {
-            background-color: #EEC218;
-            color: black;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="header">
-        <input type="text" id="address" placeholder="Enter an address">
-        <select id="distance">
-            <option value="1">1 mile</option>
-            <option value="5" selected>5 miles</option>
-            <option value="10">10 miles</option>
-        </select>
-        <input type="checkbox" id="fastOnly"> Fast Chargers Only
-        <button onclick="showChargers()">Search</button>
-    </div>
-    <div id="map"></div>
-    <div id="loading">Loading...</div>
-    <div id="location-error-modal" class="modal">
+    <div id="loading" style="display: none;">Loading...</div>
+    <div id="location-error-modal" style="display: none;">
         <div class="modal-content">
             <p id="location-error-message"></p>
-            <div class="modal-buttons">
-                <button id="retry-location">Try Again</button>
-                <button id="use-default-location">Use Default Location</button>
-            </div>
+            <button id="retry-location">Try Again</button>
+            <button id="use-default-location">Use Default Location</button>
         </div>
     </div>
-
-    <script type="module" src="js/config.js"></script>
-    <script type="module" src="js/api.js"></script>
-    <script type="module" src="js/mapUtils.js"></script>
-    <script type="module" src="js/location.js"></script>
-    <script type="module" src="js/ui.js"></script>
+    <div id="map"></div>
     <script type="module" src="js/script.js"></script>
-
-    <script>
-        // Dynamically calculate header height and update CSS variable
-        function updateHeaderHeight() {
-            const header = document.getElementById('header');
-            const headerHeight = header.offsetHeight;
-            document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
-        }
-
-        window.addEventListener('load', updateHeaderHeight);
-        window.addEventListener('resize', updateHeaderHeight);
-
-        // Search on Enter key press
-        const addressInput = document.getElementById('address');
-        addressInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                showChargers();
-            }
-        });
-
-        // Prevent map touch events from scrolling the page
-        document.getElementById('map')?.addEventListener('touchmove', (event) => {
-            event.stopPropagation();
-        }, { passive: false });
-
-        // Remove sidebar-related code since there's no sidebar in the HTML
-        /*
-        const hamburgerMenu = document.getElementById('hamburger-menu');
-        const sidebar = document.getElementById('sidebar');
-        hamburgerMenu.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-        });
-        document.addEventListener('click', (event) => {
-            if (!sidebar.contains(event.target) && !hamburgerMenu.contains(event.target)) {
-                sidebar.classList.remove('open');
-            }
-        });
-        */
-    </script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+    <script src="js/config.js"></script>
 </body>
 </html>
