@@ -3,7 +3,7 @@ export async function getChargers(lat, lon, distance, fastOnly) {
         const url = `https://74ohkix1sb.execute-api.us-east-1.amazonaws.com/prod?lat=${lat}&lon=${lon}&distance=${distance}&fastOnly=${fastOnly}`;
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`Failed to fetch chargers: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to fetch chargers: ${response.statusText}`);
         }
         const data = await response.json();
         return data;
@@ -21,6 +21,9 @@ export async function getAddressSuggestions(query) {
         const response = await fetch(
             `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=5`
         );
+        if (!response.ok) {
+            throw new Error(`Failed to fetch address suggestions: ${response.statusText}`);
+        }
         const data = await response.json();
         return data.features.map(feature => feature.place_name);
     } catch (error) {
