@@ -1,4 +1,5 @@
-import { getChargers } from './api.js'; // Add this import
+import { getChargers } from './api.js';
+import { getCurrentLocation, currentLocationCoords } from './location.js';
 
 let mapInstance = null;
 let mapReadyPromise = null;
@@ -225,7 +226,7 @@ export class GeolocationControl {
         this._container.onclick = async () => {
             try {
                 const { lat, lon } = await getCurrentLocation();
-                currentLocationCoords = { lat, lon };
+                currentLocationCoords = { lat, lon }; // Assign a new object instead of updating properties
                 const map = await getMap();
                 map.flyTo({ center: [lon, lat], zoom: 14 });
                 addCurrentLocationMarker(lat, lon);

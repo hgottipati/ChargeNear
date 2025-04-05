@@ -1,6 +1,7 @@
 import { initMap, addCurrentLocationMarker, addSearchedLocationMarker, addChargersToMap, addCircleToMap } from './mapUtils.js';
 import { getCurrentLocation, showChargers, currentLocationCoords } from './location.js';
 import { setupUI } from './ui.js';
+import { getChargers } from './api.js'; // Add this import
 
 async function init() {
     const urlParams = new URLSearchParams(window.location.search);
