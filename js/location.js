@@ -1,7 +1,7 @@
 import { getMap } from './mapUtils.js';
-import { getChargers } from './api.js'; // Add this import
+import { getChargers } from './api.js';
 
-export let currentLocationCoords = null;
+export let currentLocationCoords = { lat: null, lon: null };
 
 export async function getCurrentLocation() {
     return new Promise((resolve, reject) => {
@@ -20,7 +20,7 @@ export async function getCurrentLocation() {
                 console.error("Error getting current location:", error.message, "Code:", error.code);
                 reject(error);
             },
-            { timeout: 10000, enableHighAccuracy: true }
+            { timeout: 15000, enableHighAccuracy: true } // Increased timeout to 15 seconds
         );
     });
 }
@@ -42,14 +42,15 @@ export async function showChargers(addChargersToMap, addCircleToMap, addCurrentL
         let lat, lon;
 
         if (address.toLowerCase() === "current location") {
-            if (currentLocationCoords) {
+            if (currentLocationCoords.lat && currentLocationCoords.lon) {
                 lat = currentLocationCoords.lat;
                 lon = currentLocationCoords.lon;
             } else {
                 const coords = await getCurrentLocation();
                 lat = coords.lat;
                 lon = coords.lon;
-                currentLocationCoords = { lat, lon };
+                currentLocationCoords.lat = lat;
+                currentLocationCoords.lon = lon;
             }
 
             const map = await getMap();

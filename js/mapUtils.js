@@ -226,7 +226,8 @@ export class GeolocationControl {
         this._container.onclick = async () => {
             try {
                 const { lat, lon } = await getCurrentLocation();
-                currentLocationCoords = { lat, lon }; // Assign a new object instead of updating properties
+                currentLocationCoords.lat = lat;
+                currentLocationCoords.lon = lon;
                 const map = await getMap();
                 map.flyTo({ center: [lon, lat], zoom: 14 });
                 addCurrentLocationMarker(lat, lon);
