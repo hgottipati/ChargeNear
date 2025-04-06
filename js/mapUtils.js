@@ -229,7 +229,7 @@ export class GeolocationControl {
                 currentLocationCoords.lat = lat;
                 currentLocationCoords.lon = lon;
                 const map = await getMap();
-                map.flyTo({ center: [lon, lat], zoom: 14 });
+                map.jumpTo({ center: [lon, lat], zoom: 14 });
                 addCurrentLocationMarker(lat, lon);
                 const distance = document.getElementById("distance").value || "5";
                 const fastOnly = document.getElementById("fastOnly").checked;

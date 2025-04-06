@@ -32,7 +32,7 @@ export async function showChargers(addChargersToMap, addCircleToMap, addCurrentL
         addCurrentLocationMarker: typeof addCurrentLocationMarker,
         addSearchedLocationMarker: typeof addSearchedLocationMarker
     });
-    
+
     const address = document.getElementById("address").value;
     const distance = document.getElementById("distance").value || "5";
     const fastOnly = document.getElementById("fastOnly").checked;
@@ -61,7 +61,7 @@ export async function showChargers(addChargersToMap, addCircleToMap, addCurrentL
             }
 
             const map = await getMap();
-            map.flyTo({ center: [lon, lat], zoom: 14 });
+            map.jumpTo({ center: [lon, lat], zoom: 14 });
             addCurrentLocationMarker(lat, lon);
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers, [lon, lat], parseFloat(distance));
@@ -79,7 +79,7 @@ export async function showChargers(addChargersToMap, addCircleToMap, addCurrentL
 
             [lon, lat] = data.features[0].center;
             const map = await getMap();
-            map.flyTo({ center: [lon, lat], zoom: 14 });
+            map.jumpTo({ center: [lon, lat], zoom: 14 });
             addSearchedLocationMarker(lat, lon, address);
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers, [lon, lat], parseFloat(distance));
