@@ -12,7 +12,8 @@ async function init() {
     document.getElementById("distance").value = distance;
     document.getElementById("fastOnly").checked = fastOnly;
 
-    setupUI(showChargers, addChargersToMap, addCircleToMap);
+    // Pass all four functions to setupUI
+    setupUI(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker);
 
     const loading = document.getElementById("loading");
     const modal = document.getElementById("location-error-modal");

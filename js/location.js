@@ -26,6 +26,13 @@ export async function getCurrentLocation() {
 }
 
 export async function showChargers(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
+    console.log("showChargers called with arguments:", {
+        addChargersToMap: typeof addChargersToMap,
+        addCircleToMap: typeof addCircleToMap,
+        addCurrentLocationMarker: typeof addCurrentLocationMarker,
+        addSearchedLocationMarker: typeof addSearchedLocationMarker
+    });
+    
     const address = document.getElementById("address").value;
     const distance = document.getElementById("distance").value || "5";
     const fastOnly = document.getElementById("fastOnly").checked;

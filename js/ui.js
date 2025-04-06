@@ -3,7 +3,7 @@ import { currentLocationCoords, getCurrentLocation } from './location.js';
 import { getMap, addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker } from './mapUtils.js';
 
 
-export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
+export function setupUI(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
     const addressInput = document.getElementById("address");
     const distanceSelect = document.getElementById("distance");
     const fastOnlyCheckbox = document.getElementById("fastOnly");
@@ -27,14 +27,14 @@ export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
     addressInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            showChargers();
+            showChargers(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker);
         }
     });
 
     // Optional: Search on blur for mobile
     addressInput.addEventListener('blur', () => {
         if (addressInput.value.trim()) {
-            showChargers();
+            showChargers(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker);
         }
     });
 
