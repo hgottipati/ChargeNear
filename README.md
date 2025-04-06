@@ -11,7 +11,7 @@
 [![ChargeNear](https://img.shields.io/badge/Visit-ChargeNear.org-blue?logo=electric-vehicle&logoColor=white)](https://chargenear.org)
 
 
-![ChargeNear Map](https://github.com/hgottipati/ChargeNear/blob/main/docs/screenshot.jpg)
+![ChargeNear Map](https://github.com/hgottipati/ChargeNear/blob/main/docs/screenshot.png)
 
 
 # ChargeNear
