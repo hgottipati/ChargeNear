@@ -32,22 +32,49 @@ class MapManager {
                 zoom: 12
             });
 
-        await new Promise((resolve) => {
-            map.on('load', () => {
-                console.log("Map loaded successfully");
-                resolve();
+            this.map.on('load', () => {
+                console.log("Map loaded successfully with center:", [lon, lat]);
+                this.resolveReady(this.map);
             });
-        });
 
-        return map;
-    } catch (error) {
-        console.error("Error initializing map:", error.message);
-        throw error;
+            this.map.on('error', (error) => {
+                console.error("Mapbox error:", error);
+                this.rejectReady(new Error("Failed to load map: " + error.message));
+            });
+
+            this.map.addControl(new mapboxgl.NavigationControl());
+            this.map.addControl(new GeolocationControl(), 'top-right');
+
+            this.map.on('moveend', async () => {
+                const map = await this.getMap();
+                const center = map.getCenter();
+                const bounds = map.getBounds();
+                const distance = Math.round(
+                    mapboxgl.MercatorCoordinate.fromLngLat(bounds.getNorthEast())
+                        .distanceTo(mapboxgl.MercatorCoordinate.fromLngLat(bounds.getSouthWest())) / 1609.34
+                ) / 2;
+
+                const fastOnly = document.getElementById("fastOnly").checked;
+                try {
+                    const chargers = await getChargers(center.lat, center.lng, distance, fastOnly);
+                    addChargersToMap(chargers, [center.lng, center.lat], parseFloat(document.getElementById("distance").value || "5"));
+                    addCircleToMap([center.lng, center.lat], parseFloat(document.getElementById("distance").value || "5"));
+                } catch (error) {
+                    console.error("Error fetching chargers on map move:", error.message);
+                }
+            });
+        } catch (error) {
+            console.error("Error initializing map:", error.message);
+            alert("Error initializing map: " + error.message);
+            this.rejectReady(error);
+        }
     }
-}
 
-export async function getMap() {
-    if (!map) {
+    async getMap() {
+        if (this.map) {
+            await this.readyPromise;
+            return this.map;
+        }
         throw new Error("Map not initialized. Call initMap first.");
     }
 }
@@ -224,10 +251,98 @@ export class GeolocationControl {
 }
 
 export function addCurrentLocationMarker(lat, lon) {
-    if (!map) throw new Error("Map not initialized");
-    new mapboxgl.Marker({ color: '#0000FF' }) // Blue marker
-        .setLngLat([lon, lat])
-        .addTo(map);
+    if (currentLocationMarker) {
+        currentLocationMarker.remove();
+    }
+
+    const el = document.createElement('div');
+    el.style.backgroundColor = '#4285F4';
+    el.style.width = '12px';
+    el.style.height = '12px';
+    el.style.borderRadius = '50%';
+    el.style.border = '2px solid white';
+    el.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
+
+    getMap().then(map => {
+        currentLocationMarker = new mapboxgl.Marker({ element: el })
+            .setLngLat([lon, lat])
+            .addTo(map);
+    }).catch(error => {
+        console.error("Error adding current location marker:", error.message);
+    });
 }
 
-// ... (other functions like addSearchedLocationMarker, addChargersToMap, addCircleToMap remain unchanged)
+export function addSearchedLocationMarker(lat, lon, address) {
+    if (searchedLocationMarker) {
+        searchedLocationMarker.remove();
+    }
+
+    const el = document.createElement('div');
+    el.style.width = '30px';
+    el.style.height = '40px';
+    el.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 8.013 10.432 21.666 11.15 22.62.37.5.92.5 1.29 0C13.568 33.666 24 20.013 24 12 24 5.373 18.627 0 12 0z" fill="#FF0000"/>
+            <circle cx="12" cy="12" r="4" fill="#FFFFFF"/>
+        </svg>
+    `) + '")';
+    el.style.backgroundSize = 'contain';
+    el.style.backgroundRepeat = 'no-repeat';
+    el.style.cursor = 'pointer';
+    el.style.transform = 'translate(-50%, -100%)';
+
+    getMap().then(map => {
+        searchedLocationMarker = new mapboxgl.Marker({ element: el })
+            .setLngLat([lon, lat])
+            .setPopup(new mapboxgl.Popup().setHTML(`<h3>${address}</h3>`))
+            .addTo(map);
+    }).catch(error => {
+        console.error("Error adding searched location marker:", error.message);
+    });
+}
+
+export function addChargersToMap(chargers, center, radiusInMiles) {
+    if (!center || !center[0] || !center[1]) {
+        console.error("Invalid center coordinates for chargers:", center);
+        return;
+    }
+
+    markers.forEach(marker => marker.remove());
+    markers = [];
+
+    const kmPerMile = 1.60934;
+    const radiusInKm = radiusInMiles * kmPerMile;
+    const earthRadius = 6371;
+
+    getMap().then(map => {
+        chargers.forEach(charger => {
+            const { Latitude, Longitude, Title } = charger.AddressInfo;
+            const walkingDistance = charger.walkingDistanceMiles || 'N/A';
+
+            const dLat = (Latitude - center[1]) * (Math.PI / 180);
+            const dLon = (Longitude - center[0]) * (Math.PI / 180);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(center[1] * (Math.PI / 180)) * Math.cos(Latitude * (Math.PI / 180)) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distanceInKm = earthRadius * c;
+            const distanceInMiles = distanceInKm / kmPerMile;
+
+            const isWithinRadius = distanceInMiles <= radiusInMiles;
+
+            const popup = new mapboxgl.Popup()
+                .setHTML(`
+                    <h3>${Title}</h3>
+                    <p>Walking Distance: ${walkingDistance} miles</p>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank">Get Directions</a>
+                `);
+            const marker = new mapboxgl.Marker({ color: isWithinRadius ? 'green' : 'blue' })
+                .setLngLat([Longitude, Latitude])
+                .setPopup(popup)
+                .addTo(map);
+            markers.push(marker);
+        });
+    }).catch(error => {
+        console.error("Error adding chargers to map:", error.message);
+    });
+}
