@@ -14,7 +14,7 @@ export async function getChargers(lat, lon, distance, fastOnly) {
         
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`Failed to fetch chargers: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to fetch chargers: ${response.statusText}`);
         }
         
         const data = await response.json();
@@ -32,14 +32,15 @@ export async function getChargers(lat, lon, distance, fastOnly) {
 
 export async function getAddressSuggestions(query) {
     try {
-        // Replace with your actual geocoding API endpoint (e.g., Mapbox Geocoding API)
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}`;
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch address suggestions: ${response.status} ${response.statusText}`);
+        if (typeof MAPBOX_TOKEN === 'undefined') {
+            throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
         }
-        
+        const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=5`
+        );
+        if (!response.ok) {
+            throw new Error(`Failed to fetch address suggestions: ${response.statusText}`);
+        }
         const data = await response.json();
         const suggestions = data.features.map(feature => feature.place_name);
         

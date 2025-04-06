@@ -5,7 +5,247 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChargeNear</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+    <style> 
+            :root {
+            --header-height: 71px;
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: Arial, sans-serif; 
+            overflow: hidden; /* Prevent page scrolling */
+            height: 100vh; /* Ensure body takes full viewport height */
+        }
+
+        .header {
+            position: fixed; /* Fix header at the top */
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #00355F;
+            padding: 0.75rem;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .header-content h1 {
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: bold;
+            color: #EEC218;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            flex: 1;
+            text-align: center;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 2;
+        }
+
+        .search-container input[type="text"] {
+            padding: 5px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 300px;
+            border: none;
+            border-radius: 3px;
+        }
+
+        .search-container input[type="text"]::placeholder {
+            color: #d3d3d3; /* Light gray */
+            opacity: 1; /* Ensure full opacity for visibility */
+        }
+
+        .search-container button {
+            padding: 5px 10px;
+            font-size: 14px;
+            background-color: #EEC218;
+            color: #00355F;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #map { 
+            position: fixed; /* Fix map position */
+            top: var(--header-height); 
+            bottom: 0; 
+            width: 100%; 
+            height: calc(100vh - var(--header-height));
+            display: block;
+            z-index: 1; /* Ensure map is below header and controls */
+        }
+
+        #controls { 
+            position: absolute; 
+            top: calc(var(--header-height) + 10px); 
+            left: 10px; 
+            z-index: 2; /* Above map */
+            background: white; 
+            padding: 10px; 
+            border-radius: 5px; 
+            box-shadow: 0 0 5px rgba(0,0,0,0.3); 
+            display: flex; 
+            gap: 10px; 
+        }
+
+        #controls select, 
+        #controls label {
+            font-size: 14px;
+        }
+
+        #controls select {
+            padding: 5px;
+        }
+
+        #controls label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #loading { 
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 3; /* Above map and controls */
+            background: rgba(0,0,0,0.5); 
+            color: white; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.5rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .header-content h1 {
+                font-size: 1.25rem;
+                text-align: center;
+            }
+
+            .search-container {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .search-container input[type="text"] {
+                max-width: 100%;
+            }
+
+            .search-container button  {
+                display: block; /* Keep the button visible */
+                padding: 5px 8px; /* Adjust size for mobile */
+                font-size: 12px;
+            }
+
+            #controls {
+                top: calc(var(--header-height) + 5px);
+                left: 5px;
+                right: auto; /* Remove spanning across the screen */
+                width: 150px; /* Narrower width */
+                flex-direction: column; /* Stack vertically */
+                gap: 8px;
+                padding: 15px; /* Thicker padding */
+            }
+
+            #controls select {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            #controls label {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content h1 {
+                font-size: 1rem;
+            }
+
+            .search-container input[type="text"] {
+                font-size: 12px;
+                padding: 4px;
+            }
+
+            #controls {
+                padding: 10px;
+                width: 120px; /* Even narrower for smaller screens */
+            }
+        }
+        /* Disable UI until map is ready */
+        body:not([data-map-ready="true"]) #address,
+        body:not([data-map-ready="true"]) #distance,
+        body:not([data-map-ready="true"]) #fastOnly,
+        body:not([data-map-ready="true"]) button {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .modal-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #retry-location {
+            background-color: #4285F4;
+            color: white;
+        }
+        #use-default-location {
+            background-color: #EEC218;
+            color: black;
+        }
+    </style>
 </head>
 <body>
     <div id="loading" style="display: none;">Loading...</div>
@@ -16,9 +256,61 @@
             <button id="use-default-location">Use Default Location</button>
         </div>
     </div>
+    <div id="controls">
+        <select id="distance">
+            <option value="0.25" selected>Nearby</option>
+            <option value="1">1 mile</option>
+            <option value="5">5 miles</option>
+            <option value="10">10 miles</option>
+            <option value="15">15 miles</option>
+        </select>
+        <label><input type="checkbox" id="fastOnly"> Fast chargers only</label>
+    </div>
     <div id="map"></div>
+    <div id="loading">Loading...</div>
+    <div id="location-error-modal" class="modal">
+        <div class="modal-content">
+            <p id="location-error-message"></p>
+            <div class="modal-buttons">
+                <button id="retry-location">Try Again</button>
+                <button id="use-default-location">Use Default Location</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/api.js"></script>
+    <script type="module" src="js/mapUtils.js"></script>
+    <script type="module" src="js/location.js"></script>
+    <script type="module" src="js/ui.js"></script>
     <script type="module" src="js/script.js"></script>
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
-    <script src="js/config.js"></script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92be990c6be3ba48',t:'MTc0MzkxNDMyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+
+
+    <script>
+               // Dynamically calculate header height and update CSS variable
+        function updateHeaderHeight() {
+            const header = document.getElementById('header');
+            const headerHeight = header.offsetHeight;
+            document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+        }
+
+        window.addEventListener('load', updateHeaderHeight);
+        window.addEventListener('resize', updateHeaderHeight);
+
+        // Search on Enter key press
+        const addressInput = document.getElementById('address');
+            addressInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    showChargers();
+                }
+            });
+
+        // Prevent map touch events from scrolling the page
+        document.getElementById('map')?.addEventListener('touchmove', (event) => {
+            event.stopPropagation();
+        }, { passive: false });
+    </script>
 </body>
 </html>
