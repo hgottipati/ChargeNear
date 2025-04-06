@@ -1,6 +1,7 @@
 import { getChargers, getAddressSuggestions } from './api.js';
 import { currentLocationCoords, getCurrentLocation } from './location.js';
-import { getMap, addChargersToMap, addCircleToMap } from './mapUtils.js';
+import { getMap, addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker } from './mapUtils.js';
+
 
 export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
     const addressInput = document.getElementById("address");
@@ -23,9 +24,16 @@ export function setupUI(showChargers, addChargersToMap, addCircleToMap) {
     });
 
     // Search on Enter key press
-    addressInput.addEventListener('keypress', (event) => {
+    addressInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
+            showChargers();
+        }
+    });
+
+    // Optional: Search on blur for mobile
+    addressInput.addEventListener('blur', () => {
+        if (addressInput.value.trim()) {
             showChargers();
         }
     });

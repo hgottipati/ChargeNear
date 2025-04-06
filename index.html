@@ -155,8 +155,10 @@
                 max-width: 100%;
             }
 
-            .search-container button {
-                display: none; /* Hide the Search button on mobile */
+            .search-container button  {
+                display: block; /* Keep the button visible */
+                padding: 5px 8px; /* Adjust size for mobile */
+                font-size: 12px;
             }
 
             #controls {
@@ -257,11 +259,11 @@
     </div>
     <div id="controls">
         <select id="distance">
-            <option value="1">1 mile</option>
-            <option value="5" selected>5 miles</option>
+            <option value="0.25" selected>Nearby</option>
+            <option value="1" selected>1 mile</option>
+            <option value="5">5 miles</option>
             <option value="10">10 miles</option>
             <option value="15">15 miles</option>
-            <option value="20">20 miles</option>
         </select>
         <label><input type="checkbox" id="fastOnly"> Fast chargers only</label>
     </div>
@@ -299,12 +301,12 @@
 
         // Search on Enter key press
         const addressInput = document.getElementById('address');
-        addressInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent form submission if inside a form
-                showChargers();
-            }
-        });
+            addressInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    showChargers();
+                }
+            });
 
         // Prevent map touch events from scrolling the page
         document.getElementById('map')?.addEventListener('touchmove', (event) => {

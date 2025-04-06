@@ -97,7 +97,8 @@ async function init() {
 }
 
 // Expose showChargers globally so it can be called from index.html
-window.showChargers = () => showChargers(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker);
+window.showChargers = () =>
+    showChargers(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker);
 
 // Start the app
 init();
