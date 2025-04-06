@@ -6,53 +6,34 @@ export let currentLocationCoords = { lat: null, lon: null };
 export async function getCurrentLocation() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            console.error("Geolocation not supported by this browser");
-            reject(new Error("Geolocation is not supported by this browser."));
-            return;
+            reject(new Error("Geolocation is not supported by your browser."));
         }
-
-        console.log("Requesting current location...");
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                console.log(`Location fetched successfully: lat=${lat}, lon=${lon}`);
-                resolve({ lat, lon });
+            position => {
+                console.log("Successfully retrieved current location:", position.coords);
+                resolve({
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                });
             },
-            (error) => {
-                console.error("Geolocation error:", error.message, "Code:", error.code);
-                // Provide more specific error messages based on the code
-                let errorMessage = "Couldn’t get your location.";
-                if (error.code === 1) {
-                    errorMessage = "Location access denied by user.";
-                } else if (error.code === 2) {
-                    errorMessage = "Unable to determine your location. Please ensure location services are enabled on your device.";
-                } else if (error.code === 3) {
-                    errorMessage = "Location request timed out. Please check your network connection.";
-                }
-                reject(new Error(errorMessage));
+            error => {
+                console.error("Error getting current location:", error.message, "Code:", error.code);
+                reject(error);
             },
-            { timeout: 15000, enableHighAccuracy: true } // Increased timeout to 15 seconds
+            { timeout: 15000, enableHighAccuracy: true }
         );
     });
 }
 
 export async function showChargers(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
-    console.log("showChargers called with arguments:", {
-        addChargersToMap: typeof addChargersToMap,
-        addCircleToMap: typeof addCircleToMap,
-        addCurrentLocationMarker: typeof addCurrentLocationMarker,
-        addSearchedLocationMarker: typeof addSearchedLocationMarker
-    });
-
-    const address = document.getElementById("address").value;
+    let address = document.getElementById("address").value;
     const distance = document.getElementById("distance").value || "5";
     const fastOnly = document.getElementById("fastOnly").checked;
     const loading = document.getElementById("loading");
 
-    if (!address) {
-        alert("Please enter an address");
-        return;
+    // If address is empty, default to "current location"
+    if (!address.trim()) {
+        address = "current location";
     }
 
     try {
@@ -65,16 +46,29 @@ export async function showChargers(addChargersToMap, addCircleToMap, addCurrentL
                 lat = currentLocationCoords.lat;
                 lon = currentLocationCoords.lon;
             } else {
-                const coords = await getCurrentLocation();
-                lat = coords.lat;
-                lon = coords.lon;
-                currentLocationCoords.lat = lat;
-                currentLocationCoords.lon = lon;
+                try {
+                    const coords = await getCurrentLocation();
+                    lat = coords.lat;
+                    lon = coords.lon;
+                    currentLocationCoords.lat = lat;
+                    currentLocationCoords.lon = lon;
+                } catch (error) {
+                    // If geolocation fails, fall back to the default location
+                    console.log("Failed to get current location, using default:", error.message);
+                    lat = 47.6290525; // Default latitude (Seattle, WA)
+                    lon = -122.3758909; // Default longitude
+                    address = "1111 Expedia Group Wy W, Seattle, WA 98119"; // Default address for marker
+                }
             }
 
             const map = await getMap();
             map.jumpTo({ center: [lon, lat], zoom: 14 });
-            addCurrentLocationMarker(lat, lon);
+            if (address.toLowerCase() === "current location") {
+                addCurrentLocationMarker(lat, lon);
+            } else {
+                // If we fell back to the default location, use a searched location marker
+                addSearchedLocationMarker(lat, lon, address);
+            }
             const chargers = await getChargers(lat, lon, distance, fastOnly);
             addChargersToMap(chargers, [lon, lat], parseFloat(distance));
             addCircleToMap([lon, lat], parseFloat(distance));
