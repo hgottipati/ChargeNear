@@ -73,7 +73,6 @@ python3 -m http.server 8000
 5. Visit http://localhost:8000.
 
 ## Demo
-* Live version (v1): https://hgottipati.github.io/ChargeNear
 * Production version: https://chargenear.org 
 
 ## License
