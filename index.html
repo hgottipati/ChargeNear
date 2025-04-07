@@ -248,12 +248,13 @@
     </style>
 </head>
 <body>
-    <div id="loading" style="display: none;">Loading...</div>
-    <div id="location-error-modal" style="display: none;">
-        <div class="modal-content">
-            <p id="location-error-message"></p>
-            <button id="retry-location">Try Again</button>
-            <button id="use-default-location">Use Default Location</button>
+    <div class="header" id="header">
+        <div class="header-content">
+            <h1>ChargeNear - Find an EV Charger Near You</h1>
+            <div class="search-container">
+                <input type="text" id="address" placeholder="Search here">
+                <button onclick="showChargers()">Search</button>
+            </div>
         </div>
     </div>
     <div id="controls">
