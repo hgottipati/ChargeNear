@@ -35,13 +35,13 @@ This tool is **free to use** and open-source! Embed it in two easy ways:
 ### Option 1: Embed with a Specific Address
 Copy this iframe code into your website’s HTML, replacing the address with your property’s:
 ```html
-<iframe src="https://hgottipati.github.io/ChargeNear?address=123+Main+St,+Austin,+TX" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
+<iframe src="https://Chargenear.org/?address=123+Main+St,+Austin,+TX" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
 ```
 
 ### Option 2: Embed with Current Location
 Copy this iframe code into your website’s HTML:
 ```html
-<iframe src="https://hgottipati.github.io/ChargeNear" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
+<iframe src="https://Chargenear.org" width="800" height="600" frameborder="0" style="border:0;" allowfullscreen></iframe>
 ```
 
 ### Customization Tips
