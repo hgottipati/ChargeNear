@@ -6,9 +6,6 @@ let mapReadyPromise = null;
 export let markers = [];
 export let currentLocationMarker = null;
 export let searchedLocationMarker = null;
-export let circleLabelMarker = null;
-const circleLayerId = 'radius-circle';
-const circleSourceId = 'radius-circle-source';
 
 class MapManager {
     constructor() {
@@ -21,20 +18,32 @@ class MapManager {
 
     async initMap(lat, lon) {
         try {
-            if (typeof MAPBOX_TOKEN === 'undefined') {
+            console.log(`Initializing map at lat: ${lat}, lon: ${lon}`);
+            
+            // Check if MAPBOX_TOKEN is available
+            if (typeof window.MAPBOX_TOKEN === 'undefined') {
                 throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
             }
-            mapboxgl.accessToken = MAPBOX_TOKEN;
+            
+            // Initialize Mapbox map
+            mapboxgl.accessToken = window.MAPBOX_TOKEN;
+            console.log("Setting mapboxgl.accessToken");
+            
             this.map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/streets-v12',
                 center: [lon, lat],
-                zoom: 12
+                zoom: 14
             });
 
+            // Create a reference to this MapManager instance
+            const that = this;
+
+            // Set up map load handler
             this.map.on('load', () => {
-                console.log("Map loaded successfully with center:", [lon, lat]);
-                this.resolveReady(this.map);
+                console.log("Map loaded successfully");
+                window.isMapReady = true;
+                that.resolveReady(that.map);
             });
 
             this.map.on('error', (error) => {
@@ -48,17 +57,10 @@ class MapManager {
             this.map.on('moveend', async () => {
                 const map = await this.getMap();
                 const center = map.getCenter();
-                const bounds = map.getBounds();
-                const distance = Math.round(
-                    mapboxgl.MercatorCoordinate.fromLngLat(bounds.getNorthEast())
-                        .distanceTo(mapboxgl.MercatorCoordinate.fromLngLat(bounds.getSouthWest())) / 1609.34
-                ) / 2;
-
                 const fastOnly = document.getElementById("fastOnly").checked;
                 try {
-                    const chargers = await getChargers(center.lat, center.lng, distance, fastOnly);
-                    addChargersToMap(chargers, [center.lng, center.lat], parseFloat(document.getElementById("distance").value || "5"));
-                    addCircleToMap([center.lng, center.lat], parseFloat(document.getElementById("distance").value || "5"));
+                    const chargers = await getChargers(center.lat, center.lng, fastOnly);
+                    addChargersToMap(chargers, [center.lng, center.lat]);
                 } catch (error) {
                     console.error("Error fetching chargers on map move:", error.message);
                 }
@@ -72,140 +74,45 @@ class MapManager {
 
     async getMap() {
         if (this.map) {
-            await this.readyPromise;
             return this.map;
+        } else {
+            try {
+                console.log("Waiting for map to be ready...");
+                return await this.readyPromise;
+            } catch (error) {
+                console.error("Error getting map:", error);
+                return null;
+            }
         }
-        throw new Error("Map not initialized. Call initMap first.");
     }
 }
 
 const mapManager = new MapManager();
-export const initMap = mapManager.initMap.bind(mapManager);
-export const getMap = mapManager.getMap.bind(mapManager);
 
-// Function to generate a circle polygon (approximated with many points)
-export function generateCircle(center, radiusInMiles, points = 64) {
-    if (!center || !center[0] || !center[1]) {
-        console.error("Invalid center coordinates for circle:", center);
+// Export the async function to get the map
+export async function getMap() {
+    try {
+        const map = await mapManager.getMap();
+        if (!map) {
+            console.error("Map instance is null or undefined");
+        }
+        return map;
+    } catch (error) {
+        console.error("Error getting map:", error);
         return null;
     }
-    const coords = { lat: center[1], lng: center[0] };
-    const kmPerMile = 1.60934;
-    const radiusInKm = radiusInMiles * kmPerMile;
-    const earthRadius = 6371; // Earth's radius in km
-    const pointsArray = [];
-
-    for (let i = 0; i < points; i++) {
-        const angle = (i / points) * 2 * Math.PI;
-        const dx = radiusInKm * Math.cos(angle);
-        const dy = radiusInKm * Math.sin(angle);
-
-        const lat = coords.lat + (dy / earthRadius) * (180 / Math.PI);
-        const lng = coords.lng + (dx / earthRadius) * (180 / Math.PI) / Math.cos(coords.lat * Math.PI / 180);
-
-        pointsArray.push([lng, lat]);
-    }
-    pointsArray.push(pointsArray[0]); // Close the polygon
-
-    return {
-        type: 'Feature',
-        geometry: {
-            type: 'Polygon',
-            coordinates: [pointsArray]
-        }
-    };
 }
 
-// Function to add or update the circle on the map
-export async function addCircleToMap(center, radiusInMiles) {
-    if (!center || !radiusInMiles) {
-        console.error("Cannot add circle: Invalid center or radius", { center, radiusInMiles });
-        return;
-    }
-
-    const circleGeoJSON = generateCircle(center, radiusInMiles);
-    if (!circleGeoJSON) {
-        console.error("Failed to generate circle GeoJSON");
-        return;
-    }
-
+// Export the initMap function
+export async function initMap(lat, lon) {
     try {
-        const map = await getMap();
-        if (!map.loaded()) {
-            map.on('load', () => {
-                addCircleLayer(map, center, radiusInMiles, circleGeoJSON);
-            });
-        } else {
-            addCircleLayer(map, center, radiusInMiles, circleGeoJSON);
-        }
+        console.log(`Initializing map at [${lat}, ${lon}]`);
+        await mapManager.initMap(lat, lon);
+        return mapManager.getMap();
     } catch (error) {
-        console.error("Error adding circle to map:", error.message);
+        console.error("Error initializing map:", error);
+        throw error;
     }
-}
-
-function addCircleLayer(map, center, radiusInMiles, circleGeoJSON) {
-    if (map.getSource(circleSourceId)) {
-        map.getSource(circleSourceId).setData(circleGeoJSON);
-    } else {
-        map.addSource(circleSourceId, {
-            type: 'geojson',
-            data: circleGeoJSON
-        });
-
-        map.addLayer({
-            id: circleLayerId,
-            type: 'fill',
-            source: circleSourceId,
-            paint: {
-                'fill-color': '#EEC218',
-                'fill-opacity': 0.3
-            }
-        });
-
-        map.addLayer({
-            id: `${circleLayerId}-outline`,
-            type: 'line',
-            source: circleSourceId,
-            paint: {
-                'line-color': '#EEC218',
-                'line-width': 2
-            }
-        });
-    }
-
-    if (circleLabelMarker) {
-        circleLabelMarker.remove();
-    }
-
-    let labelText;
-    if (radiusInMiles <= 1) {
-        const walkingTimeMinutes = Math.round((radiusInMiles / 3) * 60);
-        labelText = `${walkingTimeMinutes} min walk`;
-    } else {
-        labelText = `${radiusInMiles} miles`;
-    }
-
-    const kmPerMile = 1.60934;
-    const radiusInKm = radiusInMiles * kmPerMile;
-    const earthRadius = 6371;
-    const angle = 0;
-    const dx = radiusInKm * Math.cos(angle);
-    const dy = radiusInKm * Math.sin(angle);
-    const labelLat = center[1] + (dy / earthRadius) * (180 / Math.PI);
-    const labelLon = center[0] + (dx / earthRadius) * (180 / Math.PI) / Math.cos(center[1] * Math.PI / 180);
-
-    const labelEl = document.createElement('div');
-    labelEl.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    labelEl.style.color = 'white';
-    labelEl.style.padding = '2px 6px';
-    labelEl.style.borderRadius = '3px';
-    labelEl.style.fontSize = '12px';
-    labelEl.style.whiteSpace = 'nowrap';
-    labelEl.innerText = labelText;
-
-    circleLabelMarker = new mapboxgl.Marker({ element: labelEl })
-        .setLngLat([labelLon, labelLat])
-        .addTo(map);
 }
 
 export class GeolocationControl {
@@ -225,20 +132,32 @@ export class GeolocationControl {
         `;
         this._container.onclick = async () => {
             try {
+                console.log("GeolocationControl: Requesting current location...");
                 const { lat, lon } = await getCurrentLocation();
+                console.log(`GeolocationControl: Got location [${lat}, ${lon}]`);
+                
                 currentLocationCoords.lat = lat;
                 currentLocationCoords.lon = lon;
+                
                 const map = await getMap();
+                if (!map) {
+                    throw new Error("Map not available");
+                }
+                
                 map.jumpTo({ center: [lon, lat], zoom: 14 });
                 addCurrentLocationMarker(lat, lon);
-                const distance = document.getElementById("distance").value || "5";
+                
                 const fastOnly = document.getElementById("fastOnly").checked;
-                const chargers = await getChargers(lat, lon, distance, fastOnly);
-                addChargersToMap(chargers, [lon, lat], parseFloat(distance));
-                addCircleToMap([lon, lat], parseFloat(distance));
+                
+                console.log(`GeolocationControl: Fetching chargers for [${lat}, ${lon}], fastOnly: ${fastOnly}`);
+                const chargers = await getChargers(lat, lon, fastOnly);
+                console.log(`GeolocationControl: Fetched ${chargers.length} chargers`);
+                
+                addChargersToMap(chargers, [lon, lat]);
                 document.getElementById("address").value = "Current Location";
             } catch (error) {
-                alert("Failed to get current location: " + error.message);
+                console.error("GeolocationControl error:", error);
+                alert("Failed to get current location: " + (error.userMessage || error.message));
             }
         };
         return this._container;
@@ -301,48 +220,50 @@ export function addSearchedLocationMarker(lat, lon, address) {
     });
 }
 
-export function addChargersToMap(chargers, center, radiusInMiles) {
+export function addChargersToMap(chargers, center) {
     if (!center || !center[0] || !center[1]) {
         console.error("Invalid center coordinates for chargers:", center);
         return;
     }
 
+    console.log(`Adding ${chargers.length} chargers to map with center [${center[0]}, ${center[1]}]`);
+    
     markers.forEach(marker => marker.remove());
     markers = [];
 
-    const kmPerMile = 1.60934;
-    const radiusInKm = radiusInMiles * kmPerMile;
-    const earthRadius = 6371;
-
     getMap().then(map => {
+        if (!map) {
+            console.error("Map is not available");
+            return;
+        }
+        
         chargers.forEach(charger => {
-            const { Latitude, Longitude, Title } = charger.AddressInfo;
-            const walkingDistance = charger.walkingDistanceMiles || 'N/A';
+            try {
+                // Handle both OCM API structure and our mock data
+                if (!charger.AddressInfo || !charger.AddressInfo.Latitude || !charger.AddressInfo.Longitude) {
+                    console.warn("Invalid charger data:", charger);
+                    return;
+                }
+                
+                const { Latitude, Longitude, Title } = charger.AddressInfo;
+                const walkingDistance = charger.walkingDistanceMiles || 'N/A';
 
-            const dLat = (Latitude - center[1]) * (Math.PI / 180);
-            const dLon = (Longitude - center[0]) * (Math.PI / 180);
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(center[1] * (Math.PI / 180)) * Math.cos(Latitude * (Math.PI / 180)) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const distanceInKm = earthRadius * c;
-            const distanceInMiles = distanceInKm / kmPerMile;
-
-            const isWithinRadius = distanceInMiles <= radiusInMiles;
-
-            const popup = new mapboxgl.Popup()
-                .setHTML(`
-                    <h3>${Title}</h3>
-                    <p>Walking Distance: ${walkingDistance} miles</p>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank">Get Directions</a>
-                `);
-            const marker = new mapboxgl.Marker({ color: isWithinRadius ? 'green' : 'blue' })
-                .setLngLat([Longitude, Latitude])
-                .setPopup(popup)
-                .addTo(map);
-            markers.push(marker);
+                const popup = new mapboxgl.Popup()
+                    .setHTML(`
+                        <h3>${Title || 'Charger'}</h3>
+                        <p>Walking Distance: ${walkingDistance} miles</p>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank">Get Directions</a>
+                    `);
+                const marker = new mapboxgl.Marker({ color: 'blue' })
+                    .setLngLat([Longitude, Latitude])
+                    .setPopup(popup)
+                    .addTo(map);
+                markers.push(marker);
+            } catch (error) {
+                console.error("Error adding marker for charger:", error, charger);
+            }
         });
     }).catch(error => {
-        console.error("Error adding chargers to map:", error.message);
+        console.error("Error adding chargers to map:", error);
     });
 }

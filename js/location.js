@@ -4,30 +4,60 @@ import { getChargers } from './api.js';
 export let currentLocationCoords = { lat: null, lon: null };
 
 export async function getCurrentLocation() {
+    console.log("Attempting to get current location...");
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
+            console.error("Geolocation is not supported by this browser.");
             reject(new Error("Geolocation is not supported by your browser."));
+            return;
         }
+        
+        console.log("Geolocation is supported, requesting position...");
+        
         navigator.geolocation.getCurrentPosition(
             position => {
-                console.log("Successfully retrieved current location:", position.coords);
+                console.log("Successfully retrieved current location:", {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                });
                 resolve({
                     lat: position.coords.latitude,
                     lon: position.coords.longitude
                 });
             },
             error => {
-                console.error("Error getting current location:", error.message, "Code:", error.code);
-                reject(error);
+                console.error("Error getting current location:", {
+                    message: error.message,
+                    code: error.code,
+                    PERMISSION_DENIED: error.code === 1,
+                    POSITION_UNAVAILABLE: error.code === 2,
+                    TIMEOUT: error.code === 3
+                });
+                
+                // Give a more specific error message based on the error code
+                let errorMessage = "Failed to get your location.";
+                if (error.code === 1) {
+                    errorMessage = "Location access was denied. Please allow location access in your browser settings.";
+                } else if (error.code === 2) {
+                    errorMessage = "Your location is not available. Please check your device's location services.";
+                } else if (error.code === 3) {
+                    errorMessage = "Getting your location timed out. Please try again.";
+                }
+                
+                reject(Object.assign(error, { userMessage: errorMessage }));
             },
-            { timeout: 15000, enableHighAccuracy: true }
+            { 
+                timeout: 15000, 
+                enableHighAccuracy: true,
+                maximumAge: 0 // Don't use cached position
+            }
         );
     });
 }
 
-export async function showChargers(addChargersToMap, addCircleToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
+export async function showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
     let address = document.getElementById("address").value;
-    const distance = document.getElementById("distance").value || "5";
     const fastOnly = document.getElementById("fastOnly").checked;
     const loading = document.getElementById("loading");
 
@@ -69,27 +99,36 @@ export async function showChargers(addChargersToMap, addCircleToMap, addCurrentL
                 // If we fell back to the default location, use a searched location marker
                 addSearchedLocationMarker(lat, lon, address);
             }
-            const chargers = await getChargers(lat, lon, distance, fastOnly);
-            addChargersToMap(chargers, [lon, lat], parseFloat(distance));
-            addCircleToMap([lon, lat], parseFloat(distance));
+            const chargers = await getChargers(lat, lon, fastOnly);
+            addChargersToMap(chargers, [lon, lat]);
         } else {
-            if (typeof MAPBOX_TOKEN === 'undefined') {
+            if (typeof window.MAPBOX_TOKEN === 'undefined') {
+                console.error("Mapbox token is not defined");
                 throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
             }
-            const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}`);
-            const data = await response.json();
-            console.log("Geocoding response:", data);
-            if (!data.features || data.features.length === 0) {
-                throw new Error("Address not found. Please try a different address.");
-            }
+            
+            try {
+                console.log(`Geocoding address: ${address}`);
+                const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${window.MAPBOX_TOKEN}`);
+                const data = await response.json();
+                console.log("Geocoding response:", data);
+                
+                if (!data.features || data.features.length === 0) {
+                    throw new Error("Address not found. Please try a different address.");
+                }
 
-            [lon, lat] = data.features[0].center;
-            const map = await getMap();
-            map.jumpTo({ center: [lon, lat], zoom: 14 });
-            addSearchedLocationMarker(lat, lon, address);
-            const chargers = await getChargers(lat, lon, distance, fastOnly);
-            addChargersToMap(chargers, [lon, lat], parseFloat(distance));
-            addCircleToMap([lon, lat], parseFloat(distance));
+                [lon, lat] = data.features[0].center;
+                console.log(`Address geocoded to lat: ${lat}, lon: ${lon}`);
+                
+                const map = await getMap();
+                map.jumpTo({ center: [lon, lat], zoom: 14 });
+                addSearchedLocationMarker(lat, lon, address);
+                const chargers = await getChargers(lat, lon, fastOnly);
+                addChargersToMap(chargers, [lon, lat]);
+            } catch (error) {
+                console.error("Error geocoding address:", error);
+                throw error;
+            }
         }
     } catch (error) {
         console.error("Error in showChargers:", error.message);
