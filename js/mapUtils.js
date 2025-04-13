@@ -227,6 +227,10 @@ export function addChargersToMap(chargers, center) {
     }
 
     console.log(`Adding ${chargers.length} chargers to map with center [${center[0]}, ${center[1]}]`);
+    // Log a sample charger to see the data structure
+    if (chargers.length > 0) {
+        console.log("Sample charger data:", chargers[0]);
+    }
     
     markers.forEach(marker => marker.remove());
     markers = [];
@@ -245,16 +249,62 @@ export function addChargersToMap(chargers, center) {
                     return;
                 }
                 
-                const { Latitude, Longitude, Title } = charger.AddressInfo;
-                const walkingDistance = charger.walkingDistanceMiles || 'N/A';
-
-                const popup = new mapboxgl.Popup()
+                const { Latitude, Longitude, Title, AddressLine1, Town, StateOrProvince, Postcode } = charger.AddressInfo;
+                
+                // Format the connector information
+                let connectorInfo = '<p><strong>Connectors:</strong></p><ul style="margin-top: 5px; padding-left: 20px;">';
+                if (charger.Connections && charger.Connections.length > 0) {
+                    charger.Connections.forEach(conn => {
+                        const connectorType = conn.ConnectionType ? conn.ConnectionType.Title : 'Unknown';
+                        const powerKW = conn.PowerKW ? `${conn.PowerKW} kW` : 'Unknown power';
+                        const quantity = conn.Quantity > 1 ? `(${conn.Quantity} available)` : '';
+                        connectorInfo += `<li>${connectorType} - ${powerKW} ${quantity}</li>`;
+                    });
+                } else {
+                    connectorInfo += '<li>Connector information not available</li>';
+                }
+                connectorInfo += '</ul>';
+                
+                // Get operator information
+                const operatorName = charger.OperatorInfo ? charger.OperatorInfo.Title : 'Unknown operator';
+                
+                // Get usage cost if available
+                let usageCost = 'Cost information not available';
+                if (charger.UsageCost) {
+                    usageCost = charger.UsageCost;
+                }
+                
+                // Get status information
+                const statusTitle = charger.StatusType ? charger.StatusType.Title : 'Unknown status';
+                const isOperational = statusTitle === 'Operational';
+                const statusColor = isOperational ? 'green' : 'red';
+                
+                // Format the address
+                const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
+                
+                // Create the popup HTML
+                const popup = new mapboxgl.Popup({maxWidth: '300px'})
                     .setHTML(`
-                        <h3>${Title || 'Charger'}</h3>
-                        <p>Walking Distance: ${walkingDistance} miles</p>
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank">Get Directions</a>
+                        <div style="font-family: Arial, sans-serif;">
+                            <h3 style="margin-bottom: 5px;">${Title || 'Charger'}</h3>
+                            <p style="margin-top: 0; color: gray;">${operatorName}</p>
+                            <p><strong>Address:</strong> ${address}</p>
+                            <p><strong>Status:</strong> <span style="color: ${statusColor};">${statusTitle}</span></p>
+                            <p><strong>Cost:</strong> ${usageCost}</p>
+                            ${connectorInfo}
+                            <div style="margin-top: 10px;">
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" 
+                                   target="_blank" style="color: #4285F4; text-decoration: none;">
+                                   Get Directions
+                                </a>
+                            </div>
+                        </div>
                     `);
-                const marker = new mapboxgl.Marker({ color: 'blue' })
+                    
+                // Set marker color based on status
+                const markerColor = isOperational ? 'green' : 'orange';
+                
+                const marker = new mapboxgl.Marker({ color: markerColor })
                     .setLngLat([Longitude, Latitude])
                     .setPopup(popup)
                     .addTo(map);
