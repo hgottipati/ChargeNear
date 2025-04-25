@@ -59,6 +59,9 @@ export async function getCurrentLocation() {
 export async function showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
     let address = document.getElementById("address").value;
     const fastOnly = document.getElementById("fastOnly").checked;
+    const teslaSupercharger = document.getElementById("teslaSupercharger").checked;
+    const teslaDestination = document.getElementById("teslaDestination").checked;
+    const chargepointOnly = document.getElementById("chargepointOnly").checked;
     const loading = document.getElementById("loading");
 
     // If address is empty, default to "current location"
@@ -99,7 +102,7 @@ export async function showChargers(addChargersToMap, addCurrentLocationMarker, a
                 // If we fell back to the default location, use a searched location marker
                 addSearchedLocationMarker(lat, lon, address);
             }
-            const chargers = await getChargers(lat, lon, fastOnly);
+            const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
             addChargersToMap(chargers, [lon, lat]);
         } else {
             if (typeof window.MAPBOX_TOKEN === 'undefined') {
@@ -123,7 +126,7 @@ export async function showChargers(addChargersToMap, addCurrentLocationMarker, a
                 const map = await getMap();
                 map.jumpTo({ center: [lon, lat], zoom: 14 });
                 addSearchedLocationMarker(lat, lon, address);
-                const chargers = await getChargers(lat, lon, fastOnly);
+                const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
                 addChargersToMap(chargers, [lon, lat]);
             } catch (error) {
                 console.error("Error geocoding address:", error);

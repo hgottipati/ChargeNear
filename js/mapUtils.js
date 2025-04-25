@@ -79,9 +79,15 @@ class MapManager {
             this.map.on('moveend', async () => {
                 const map = await this.getMap();
                 const center = map.getCenter();
-                const fastOnly = document.getElementById("fastOnly").checked;
+                
+                // Safely get checkbox states
+                const fastOnly = document.getElementById("fastOnly")?.checked || false;
+                const teslaSupercharger = document.getElementById("teslaSupercharger")?.checked || false;
+                const teslaDestination = document.getElementById("teslaDestination")?.checked || false;
+                const chargepointOnly = document.getElementById("chargepointOnly")?.checked || false;
+                
                 try {
-                    const chargers = await getChargers(center.lat, center.lng, fastOnly);
+                    const chargers = await getChargers(center.lat, center.lng, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
                     addChargersToMap(chargers, [center.lng, center.lat]);
                 } catch (error) {
                     console.error("Error fetching chargers on map move:", error.message);
@@ -169,10 +175,14 @@ export class GeolocationControl {
                 map.jumpTo({ center: [lon, lat], zoom: 14 });
                 addCurrentLocationMarker(lat, lon);
                 
-                const fastOnly = document.getElementById("fastOnly").checked;
+                // Safely get checkbox states
+                const fastOnly = document.getElementById("fastOnly")?.checked || false;
+                const teslaSupercharger = document.getElementById("teslaSupercharger")?.checked || false;
+                const teslaDestination = document.getElementById("teslaDestination")?.checked || false;
+                const chargepointOnly = document.getElementById("chargepointOnly")?.checked || false;
                 
-                console.log(`GeolocationControl: Fetching chargers for [${lat}, ${lon}], fastOnly: ${fastOnly}`);
-                const chargers = await getChargers(lat, lon, fastOnly);
+                console.log(`GeolocationControl: Fetching chargers for [${lat}, ${lon}], fastOnly: ${fastOnly}, teslaSupercharger: ${teslaSupercharger}, teslaDestination: ${teslaDestination}, chargepointOnly: ${chargepointOnly}`);
+                const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
                 console.log(`GeolocationControl: Fetched ${chargers.length} chargers`);
                 
                 addChargersToMap(chargers, [lon, lat]);

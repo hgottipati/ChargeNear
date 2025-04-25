@@ -7,6 +7,9 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
     const addressInput = document.getElementById("address");
     const distanceSelect = document.getElementById("distance");
     const fastOnlyCheckbox = document.getElementById("fastOnly");
+    const teslaSuperchargerCheckbox = document.getElementById("teslaSupercharger");
+    const teslaDestinationCheckbox = document.getElementById("teslaDestination");
+    const chargepointOnlyCheckbox = document.getElementById("chargepointOnly");
 
     // Hide the distance dropdown since we no longer need it
     if (distanceSelect) {
@@ -43,9 +46,12 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
         }
     });
 
-    // Automatic update when fast chargers only changes
-    fastOnlyCheckbox.addEventListener("change", async () => {
+    // Function to update chargers based on filter changes
+    const updateChargers = async () => {
         const fastOnly = fastOnlyCheckbox.checked;
+        const teslaSupercharger = teslaSuperchargerCheckbox.checked;
+        const teslaDestination = teslaDestinationCheckbox.checked;
+        const chargepointOnly = chargepointOnlyCheckbox.checked;
 
         try {
             // Wait for the map to be ready
@@ -66,7 +72,7 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
             if (currentLocationCoords.lat && currentLocationCoords.lon && (!addressInput.value || addressInput.value.toLowerCase() === "current location")) {
                 lat = currentLocationCoords.lat;
                 lon = currentLocationCoords.lon;
-            } else if (addressInput.value && addressInput.value.toLowerCase() !== "current location") {
+            } else if (addressInput.value) {
                 try {
                     if (typeof window.MAPBOX_TOKEN === 'undefined') {
                         console.error("Mapbox token is not defined");
@@ -91,11 +97,17 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
                 [lon, lat] = map.getCenter().toArray();
             }
 
-            const chargers = await getChargers(lat, lon, fastOnly);
+            const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
             addChargersToMap(chargers, [lon, lat]);
         } catch (error) {
-            console.error("Error updating fast charger filter:", error.message);
+            console.error("Error updating charger filters:", error.message);
             alert("Error updating map: " + error.message);
         }
-    });
+    };
+
+    // Add event listeners for all filter checkboxes
+    fastOnlyCheckbox.addEventListener("change", updateChargers);
+    teslaSuperchargerCheckbox.addEventListener("change", updateChargers);
+    teslaDestinationCheckbox.addEventListener("change", updateChargers);
+    chargepointOnlyCheckbox.addEventListener("change", updateChargers);
 }
