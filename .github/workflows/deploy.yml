@@ -1,0 +1,48 @@
+name: Deploy to S3
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Deploy to S3
+        run: |
+          # Sync all files except those in .git and .github
+          aws s3 sync . s3://chargenear-hg \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "venv/*" \
+            --exclude ".DS_Store" \
+            --exclude "*.pyc" \
+            --exclude "__pycache__/*" \
+            --exclude "*.log" \
+            --exclude "node_modules/*" \
+            --exclude "package-lock.json" \
+            --exclude "package.json" \
+            --exclude "README.md" \
+            --exclude "LICENSE" \
+            --exclude "requirements.txt" \
+            --exclude "server.py" \
+            --exclude ".gitignore" \
+            --exclude ".idea/*" \
+            --exclude "docs/*" \
+            --exclude "style.css" \
+            --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*" 
