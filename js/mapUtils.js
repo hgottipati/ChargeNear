@@ -51,8 +51,30 @@ class MapManager {
                 this.rejectReady(new Error("Failed to load map: " + error.message));
             });
 
+            // Add map controls
             this.map.addControl(new mapboxgl.NavigationControl());
+            this.map.addControl(new StyleToggleControl(), 'top-right');
             this.map.addControl(new GeolocationControl(), 'top-right');
+
+            // When the map style changes, we need to reload the markers
+            this.map.on('custom-style-changed', async () => {
+                try {
+                    // Re-add markers after style change
+                    markers.forEach(marker => marker.addTo(this.map));
+                    
+                    // Re-add current location marker if it exists
+                    if (currentLocationCoords.lat && currentLocationCoords.lon) {
+                        addCurrentLocationMarker(currentLocationCoords.lat, currentLocationCoords.lon);
+                    }
+                    
+                    // Re-add searched location marker if it exists
+                    if (searchedLocationMarker) {
+                        searchedLocationMarker.addTo(this.map);
+                    }
+                } catch (error) {
+                    console.error("Error reloading markers after style change:", error);
+                }
+            });
 
             this.map.on('moveend', async () => {
                 const map = await this.getMap();
@@ -316,4 +338,74 @@ export function addChargersToMap(chargers, center) {
     }).catch(error => {
         console.error("Error adding chargers to map:", error);
     });
+}
+
+// Create a custom style toggle control
+class StyleToggleControl {
+    constructor() {
+        this.satellite = false;
+    }
+
+    onAdd(map) {
+        this._map = map;
+        this._container = document.createElement('div');
+        this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+        
+        // Create the toggle button with a better satellite icon
+        this._container.innerHTML = `
+            <button id="style-toggle" class="mapboxgl-ctrl-icon" title="Switch to Satellite View" style="background: white; border: none; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+            </button>
+        `;
+        
+        const button = this._container.querySelector('#style-toggle');
+        
+        button.onclick = () => {
+            this.satellite = !this.satellite;
+            
+            // Change the map style based on the toggle state
+            if (this.satellite) {
+                // Switch to satellite view
+                map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
+                button.title = 'Switch to Street View';
+                button.innerHTML = `
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <line x1="15" y1="3" x2="15" y2="21"></line>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="3" y1="15" x2="21" y2="15"></line>
+                    </svg>
+                `;
+            } else {
+                // Switch to street view
+                map.setStyle('mapbox://styles/mapbox/streets-v12');
+                button.title = 'Switch to Satellite View';
+                button.innerHTML = `
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                `;
+            }
+            
+            // Dispatch a style change event that we can listen to
+            map.once('style.load', () => {
+                console.log("Map style changed and reloaded");
+                map.fire('custom-style-changed');
+            });
+        };
+        
+        return this._container;
+    }
+
+    onRemove() {
+        this._container.parentNode.removeChild(this._container);
+        this._map = undefined;
+    }
 }
