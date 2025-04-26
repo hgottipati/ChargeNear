@@ -438,7 +438,10 @@
         </div>
     </div>
 
-    <script type="module" src="js/config.js"></script>
+    <!-- Load config first -->
+    <script src="js/config.js"></script>
+    
+    <!-- Then load other scripts -->
     <script type="module" src="js/api.js"></script>
     <script type="module" src="js/mapUtils.js"></script>
     <script type="module" src="js/location.js"></script>
