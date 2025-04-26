@@ -2,19 +2,51 @@ import { getChargers, getAddressSuggestions } from './api.js';
 import { currentLocationCoords, getCurrentLocation } from './location.js';
 import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker } from './mapUtils.js';
 
-
 export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
     const addressInput = document.getElementById("address");
     const distanceSelect = document.getElementById("distance");
-    const fastOnlyCheckbox = document.getElementById("fastOnly");
-    const teslaSuperchargerCheckbox = document.getElementById("teslaSupercharger");
-    const teslaDestinationCheckbox = document.getElementById("teslaDestination");
-    const chargepointOnlyCheckbox = document.getElementById("chargepointOnly");
+    const filterButton = document.getElementById("filter-button");
+    const filterModal = document.getElementById("filter-modal");
+    const closeButton = document.querySelector(".close-button");
+    const applyFiltersButton = document.getElementById("apply-filters");
+    const resetFiltersButton = document.getElementById("reset-filters");
 
     // Hide the distance dropdown since we no longer need it
     if (distanceSelect) {
         distanceSelect.style.display = 'none';
     }
+
+    // Filter Modal Controls
+    filterButton.addEventListener("click", () => {
+        filterModal.style.display = "flex";
+    });
+
+    closeButton.addEventListener("click", () => {
+        filterModal.style.display = "none";
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener("click", (event) => {
+        if (event.target === filterModal) {
+            filterModal.style.display = "none";
+        }
+    });
+
+    // Reset filters
+    resetFiltersButton.addEventListener("click", () => {
+        const checkboxes = filterModal.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        // Keep operational only checked by default
+        document.getElementById("operationalOnly").checked = true;
+    });
+
+    // Apply filters
+    applyFiltersButton.addEventListener("click", () => {
+        filterModal.style.display = "none";
+        updateChargers();
+    });
 
     // Address input suggestions
     addressInput.addEventListener("input", async () => {
@@ -48,10 +80,18 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
 
     // Function to update chargers based on filter changes
     const updateChargers = async () => {
-        const fastOnly = fastOnlyCheckbox.checked;
-        const teslaSupercharger = teslaSuperchargerCheckbox.checked;
-        const teslaDestination = teslaDestinationCheckbox.checked;
-        const chargepointOnly = chargepointOnlyCheckbox.checked;
+        const fastOnly = document.getElementById("fastOnly").checked;
+        const level2Only = document.getElementById("level2Only").checked;
+        const teslaSupercharger = document.getElementById("teslaSupercharger").checked;
+        const teslaDestination = document.getElementById("teslaDestination").checked;
+        const chargepointOnly = document.getElementById("chargepointOnly").checked;
+        const electrifyAmerica = document.getElementById("electrifyAmerica").checked;
+        const evgo = document.getElementById("evgo").checked;
+        const blink = document.getElementById("blink").checked;
+        const operationalOnly = document.getElementById("operationalOnly").checked;
+        const highPower = document.getElementById("highPower").checked;
+        const mediumPower = document.getElementById("mediumPower").checked;
+        const lowPower = document.getElementById("lowPower").checked;
 
         try {
             // Wait for the map to be ready
@@ -97,17 +137,24 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
                 [lon, lat] = map.getCenter().toArray();
             }
 
-            const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
+            const chargers = await getChargers(lat, lon, {
+                fastOnly,
+                level2Only,
+                teslaSupercharger,
+                teslaDestination,
+                chargepointOnly,
+                electrifyAmerica,
+                evgo,
+                blink,
+                operationalOnly,
+                highPower,
+                mediumPower,
+                lowPower
+            });
             addChargersToMap(chargers, [lon, lat]);
         } catch (error) {
             console.error("Error updating charger filters:", error.message);
             alert("Error updating map: " + error.message);
         }
     };
-
-    // Add event listeners for all filter checkboxes
-    fastOnlyCheckbox.addEventListener("change", updateChargers);
-    teslaSuperchargerCheckbox.addEventListener("change", updateChargers);
-    teslaDestinationCheckbox.addEventListener("change", updateChargers);
-    chargepointOnlyCheckbox.addEventListener("change", updateChargers);
 }
