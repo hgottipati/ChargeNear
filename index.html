@@ -186,8 +186,10 @@
             .filter-button {
                 width: 25px;
                 height: 25px;
-                min-width: 25px; /* Ensure it stays square */
+                min-width: 25px;
                 min-height: 25px;
+                max-width: 25px;
+                max-height: 25px;
             }
 
             .filter-button i {
@@ -215,6 +217,8 @@
                 height: 22px;
                 min-width: 22px;
                 min-height: 22px;
+                max-width: 22px;
+                max-height: 22px;
             }
 
             .filter-button i {
@@ -287,6 +291,8 @@
             margin: 0;
             padding: 0;
             aspect-ratio: 1;
+            flex-shrink: 0;
+            flex-grow: 0;
         }
 
         .filter-button:hover {
@@ -296,6 +302,12 @@
 
         .filter-button i {
             font-size: 1rem;
+            line-height: 1;
+            width: 1em;
+            height: 1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Filter Modal Styles */
