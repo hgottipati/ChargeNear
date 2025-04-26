@@ -438,8 +438,10 @@
         </div>
     </div>
 
-    <!-- Load config first -->
-    <script src="js/config.js"></script>
+    <!-- Load config first as a module -->
+    <script type="module">
+        import './js/config.js';
+    </script>
     
     <!-- Then load other scripts -->
     <script type="module" src="js/api.js"></script>
