@@ -166,7 +166,7 @@
 
             #controls {
                 top: calc(var(--header-height) + 5px);
-                right: 5px;
+                right: 50px; /* Position it to the left of the zoom controls */
                 width: auto;
                 flex-direction: column;
                 gap: 8px;
@@ -184,12 +184,14 @@
             }
 
             .filter-button {
-                width: 25px; /* Smaller on mobile */
-                height: 25px; /* Smaller on mobile */
+                width: 25px;
+                height: 25px;
+                min-width: 25px; /* Ensure it stays square */
+                min-height: 25px;
             }
 
             .filter-button i {
-                font-size: 0.8rem; /* Smaller icon on mobile */
+                font-size: 0.8rem;
             }
         }
 
@@ -209,12 +211,14 @@
             }
 
             .filter-button {
-                width: 22px; /* Even smaller on very small screens */
+                width: 22px;
                 height: 22px;
+                min-width: 22px;
+                min-height: 22px;
             }
 
             .filter-button i {
-                font-size: 0.7rem; /* Even smaller icon on very small screens */
+                font-size: 0.7rem;
             }
         }
         /* Disable UI until map is ready */
@@ -281,6 +285,8 @@
             transition: all 0.3s ease;
             color: #00355F;
             margin: 0;
+            padding: 0;
+            aspect-ratio: 1;
         }
 
         .filter-button:hover {
