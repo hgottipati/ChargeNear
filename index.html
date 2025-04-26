@@ -166,12 +166,12 @@
 
             #controls {
                 top: calc(var(--header-height) + 5px);
-                right: 50px; /* Keep consistent with desktop */
+                right: 5px;
                 width: auto;
                 flex-direction: column;
                 gap: 8px;
                 padding: 10px;
-                margin-top: 0; /* Remove margin for mobile too */
+                margin-top: 0;
             }
 
             #controls select {
@@ -181,6 +181,15 @@
 
             #controls label {
                 justify-content: center;
+            }
+
+            .filter-button {
+                width: 25px; /* Smaller on mobile */
+                height: 25px; /* Smaller on mobile */
+            }
+
+            .filter-button i {
+                font-size: 0.8rem; /* Smaller icon on mobile */
             }
         }
 
@@ -197,6 +206,15 @@
             #controls {
                 padding: 10px;
                 width: 120px; /* Even narrower for smaller screens */
+            }
+
+            .filter-button {
+                width: 22px; /* Even smaller on very small screens */
+                height: 22px;
+            }
+
+            .filter-button i {
+                font-size: 0.7rem; /* Even smaller icon on very small screens */
             }
         }
         /* Disable UI until map is ready */
