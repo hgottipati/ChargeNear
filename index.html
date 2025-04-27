@@ -320,20 +320,27 @@
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
+            background: #fff;
+            border: 2px solid #00355F;
+            border-radius: 12px;
         }
 
         .modal-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            gap: 12px;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
+            background: #00355F;
+            color: #EEC218;
+            border-radius: 12px 12px 0 0;
         }
 
         .modal-header h2 {
             margin: 0;
             font-size: 1.5rem;
-            color: #333;
+            color: #EEC218;
         }
 
         .close-button {
@@ -341,7 +348,7 @@
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: #666;
+            color: #EEC218;
         }
 
         .filter-sections {
@@ -350,19 +357,55 @@
 
         .filter-section {
             margin-bottom: 20px;
+            background: #f7f9fb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 1px 4px rgba(0,53,95,0.05);
         }
 
         .filter-section h3 {
             margin: 0 0 10px 0;
             font-size: 1.1rem;
-            color: #444;
+            color: #00355F;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .filter-section label {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             margin: 8px 0;
-            color: #666;
+            color: #00355F;
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 4px 8px;
+            transition: background 0.2s;
         }
+        .filter-section label:hover {
+            background: #EEC21822;
+        }
+        .filter-section input[type="checkbox"]:checked + span {
+            color: #EEC218;
+            font-weight: bold;
+        }
+        .filter-section input[type="checkbox"] {
+            accent-color: #EEC218;
+        }
+        .filter-section .operator-badge {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .operator-tesla { background: #c41e1e; }
+        .operator-chargepoint { background: #0072c6; }
+        .operator-electrify { background: #43b02a; }
+        .operator-evgo { background: #6c47a3; }
+        .operator-blink { background: #222; }
 
         .modal-footer {
             padding-top: 15px;
@@ -374,16 +417,17 @@
 
         .primary-button {
             background: #00355F;
-            color: white;
+            color: #EEC218;
             border: none;
             padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
+            font-weight: bold;
         }
 
         .secondary-button {
             background: #f0f0f0;
-            color: #333;
+            color: #00355F;
             border: none;
             padding: 8px 16px;
             border-radius: 4px;
@@ -418,9 +462,12 @@
     <!-- Filter Modal -->
     <div id="filter-modal" class="modal">
         <div class="modal-content filter-modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-filter"></i> Filter Chargers</h2>
-                <button class="close-button">&times;</button>
+            <div class="modal-header" style="justify-content: center; align-items: center; gap: 12px;">
+                <span style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-filter" style="color: #EEC218; font-size: 2rem;"></i>
+                    <span style="font-size: 1.7rem; font-weight: bold; color: #EEC218; letter-spacing: 1px;">Filter Chargers</span>
+                </span>
+                <button class="close-button" style="position: absolute; right: 24px; top: 18px; color: #EEC218; font-size: 2rem;">&times;</button>
             </div>
             <div class="filter-sections">
                 <div class="filter-section">
@@ -431,7 +478,13 @@
 
                 <div class="filter-section">
                     <h3><i class="fas fa-car"></i> Tesla Chargers</h3>
-                    <label><input type="checkbox" id="teslaSupercharger"> Tesla Superchargers</label>
+                    <label>
+                        <input type="checkbox" id="teslaSupercharger">
+                        <span class="operator-badge" style="background: none; margin-right: 4px; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px;">
+                            <i class="fas fa-bolt" style="color: #EEC218; font-size: 1.1em;"></i>
+                        </span>
+                        Tesla Superchargers
+                    </label>
                     <label><input type="checkbox" id="teslaDestination"> Tesla Destination</label>
                 </div>
 
