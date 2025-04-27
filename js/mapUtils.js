@@ -322,6 +322,32 @@ export function addChargersToMap(chargers, center) {
                 const isOperational = statusTitle === 'Operational';
                 const statusColor = isOperational ? 'green' : 'red';
                 
+                // Determine marker color
+                let markerColor = '#4CAF50'; // Default green
+                if (!isOperational) {
+                    markerColor = '#A67C52'; // Brown for not operational
+                } else {
+                    // Check for high power (Level 3 or Tesla Supercharger)
+                    let isHighPower = false;
+                    if (charger.Connections && charger.Connections.length > 0) {
+                        isHighPower = charger.Connections.some(conn => conn.LevelID === 3 || (conn.PowerKW && conn.PowerKW >= 150));
+                    }
+                    // Tesla Supercharger check
+                    const isTeslaSupercharger =
+                        charger.OperatorInfo &&
+                        charger.OperatorInfo.Title &&
+                        charger.OperatorInfo.Title.toLowerCase().includes('tesla') &&
+                        charger.Connections &&
+                        charger.Connections.some(conn => conn.ConnectionType && (
+                            conn.ConnectionType.Title === 'NACS / Tesla Supercharger' ||
+                            conn.ConnectionType.Title === 'Tesla Supercharger' ||
+                            conn.ConnectionType.Title === 'Tesla (Model S/X)'
+                        ));
+                    if (isHighPower || isTeslaSupercharger) {
+                        markerColor = '#FFB347'; // Light orange
+                    }
+                }
+                
                 // Format the address
                 const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
                 
@@ -343,9 +369,6 @@ export function addChargersToMap(chargers, center) {
                             </div>
                         </div>
                     `);
-                    
-                // Set marker color based on status
-                const markerColor = isOperational ? 'green' : 'orange';
                 
                 const marker = new mapboxgl.Marker({ color: markerColor })
                     .setLngLat([Longitude, Latitude])
