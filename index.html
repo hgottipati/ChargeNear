@@ -174,15 +174,6 @@
                 margin-top: 0;
             }
 
-            #controls select {
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            #controls label {
-                justify-content: center;
-            }
-
             .filter-button {
                 width: 40px !important;
                 height: 40px !important;
@@ -193,17 +184,8 @@
                 padding: 0 !important;
                 margin: 0 !important;
                 box-sizing: border-box;
-                top: 60px;
+                top: 100px;
                 right: 8px;
-            }
-
-            .filter-button i {
-                font-size: 1.3rem;
-                width: 100%;
-                height: 100%;
-                margin: 0 !important;
-                padding: 0 !important;
-                text-align: center;
             }
         }
 
@@ -228,14 +210,8 @@
                 width: 32px !important;
                 height: 32px !important;
                 aspect-ratio: 1 / 1;
-                top: 60px;
+                top: 100px;
                 right: 8px;
-            }
-
-            .filter-button i {
-                font-size: 1.1rem;
-                width: 100%;
-                height: 100%;
             }
         }
         /* Disable UI until map is ready */
@@ -308,7 +284,7 @@
             flex-grow: 0;
             box-sizing: border-box;
             position: absolute;
-            top: 60px;
+            top: 100px; /* Position it below the Mapbox control group */
             right: 10px;
         }
 
