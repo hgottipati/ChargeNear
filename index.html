@@ -659,36 +659,5 @@
             setupSelectAll('section-power', 'selectAllPower', 'power-child');
         });
     </script>
-
-    <div class="header">
-        <h1>ChargeNear</h1>
-        <div id="authContainer">
-            <div id="loginForm">
-                <h2>Login</h2>
-                <form>
-                    <input type="text" id="loginUsername" placeholder="Username" required>
-                    <input type="password" id="loginPassword" placeholder="Password" required>
-                    <button type="submit" id="loginBtn">Login</button>
-                </form>
-                <p>Don't have an account? <a href="#" id="showRegister">Register</a></p>
-            </div>
-            <div id="registerForm" style="display: none;">
-                <h2>Register</h2>
-                <form>
-                    <input type="text" id="registerUsername" placeholder="Username" required>
-                    <input type="email" id="registerEmail" placeholder="Email" required>
-                    <input type="password" id="registerPassword" placeholder="Password" required>
-                    <button type="submit" id="registerBtn">Register</button>
-                </form>
-                <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
-            </div>
-        </div>
-        <div id="userInfo" style="display: none;">
-            <p>Welcome, <span id="usernameDisplay"></span>!</p>
-            <button id="logoutBtn">Logout</button>
-        </div>
-    </div>
-
-    <script src="js/auth.js"></script>
 </body>
 </html>
