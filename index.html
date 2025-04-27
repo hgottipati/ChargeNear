@@ -643,47 +643,6 @@
         window.addEventListener('load', updateHeaderHeight);
         window.addEventListener('resize', updateHeaderHeight);
 
-        // Custom Mapbox control for filter button
-        class FilterControl {
-            onAdd(map) {
-                this._map = map;
-                this._container = document.createElement('div');
-                this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-                
-                const button = document.createElement('button');
-                button.className = 'filter-button';
-                button.title = 'Show Filters';
-                button.innerHTML = `
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00355F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;">
-                        <path d="M4 4h16l-6.5 8.5v5a1.5 1.5 0 0 1-3 0v-5L4 4z"/>
-                    </svg>
-                `;
-                button.onclick = () => {
-                    document.getElementById('filter-modal').style.display = 'flex';
-                };
-                
-                this._container.appendChild(button);
-                return this._container;
-            }
-
-            onRemove() {
-                this._container.parentNode.removeChild(this._container);
-                this._map = undefined;
-            }
-        }
-
-        // Add the custom control to the map
-        document.addEventListener('DOMContentLoaded', () => {
-            const map = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/mapbox/streets-v11',
-                center: [-98.5795, 39.8283],
-                zoom: 3
-            });
-
-            map.addControl(new FilterControl(), 'top-right');
-        });
-
         // Accordion logic for filter sections
         function toggleSection(event, sectionId) {
             event.stopPropagation();
