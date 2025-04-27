@@ -503,8 +503,32 @@
         .filter-button {
             position: absolute;
             top: 100%;
-            right: 45px;
+            right: 50px;
             margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .filter-button {
+                width: 48px !important;
+                height: 48px !important;
+            }
+
+            .filter-button svg {
+                width: 1.5em;
+                height: 1.5em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .filter-button {
+                width: 44px !important;
+                height: 44px !important;
+            }
+
+            .filter-button svg {
+                width: 1.4em;
+                height: 1.4em;
+            }
         }
     </style>
 </head>
