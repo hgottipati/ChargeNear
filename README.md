@@ -1,7 +1,6 @@
 <p align="center">
   <a href="https://chargenear.org">
     <h2>
-      <img src="https://chargenear.org/favicon.png" alt="ChargeNear" width="20">
       <strong>ChargeNear.org</strong>
     </h2>
   </a>
