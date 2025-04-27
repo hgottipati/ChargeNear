@@ -54,8 +54,22 @@ export async function getChargers(lat, lon, filters) {
             });
             
             // Apply filters
-            if (Object.values(filters).some(value => value === true)) {
-                const originalChargers = [...chargers];
+            const originalChargers = [...chargers];
+            
+            // Always apply operational filter if it's checked
+            if (filters.operationalOnly) {
+                chargers = chargers.filter(charger => 
+                    charger.StatusType && charger.StatusType.Title === 'Operational'
+                );
+            }
+
+            // Check if any non-operational filters are selected
+            const hasActiveFilters = Object.entries(filters).some(([key, value]) => 
+                key !== 'operationalOnly' && value === true
+            );
+
+            // Only apply other filters if any are selected
+            if (hasActiveFilters) {
                 chargers = chargers.filter(charger => {
                     // Check if charger matches any of the selected filters
                     const isFast = filters.fastOnly && charger.Connections && charger.Connections.some(conn => conn.LevelID === 3);
@@ -96,72 +110,19 @@ export async function getChargers(lat, lon, filters) {
                     const isEVgo = filters.evgo && charger.OperatorInfo && charger.OperatorInfo.Title === 'EVgo';
                     const isBlink = filters.blink && charger.OperatorInfo && charger.OperatorInfo.Title === 'Blink Charging';
                     
-                    // Check operational status
-                    const isOperational = !filters.operationalOnly || (charger.StatusType && charger.StatusType.Title === 'Operational');
-                    
                     // Check power output
                     const hasHighPower = filters.highPower && charger.Connections && charger.Connections.some(conn => conn.PowerKW && conn.PowerKW >= 150);
                     const hasMediumPower = filters.mediumPower && charger.Connections && charger.Connections.some(conn => conn.PowerKW && conn.PowerKW >= 50 && conn.PowerKW < 150);
                     const hasLowPower = filters.lowPower && charger.Connections && charger.Connections.some(conn => conn.PowerKW && conn.PowerKW < 50);
                     
                     // Return true if any of the selected filters match
-                    return (isFast || isLevel2 || isTeslaSupercharger || isTeslaDestination || 
-                            isChargePoint || isElectrifyAmerica || isEVgo || isBlink || 
-                            hasHighPower || hasMediumPower || hasLowPower) && isOperational;
+                    return isFast || isLevel2 || isTeslaSupercharger || isTeslaDestination || 
+                           isChargePoint || isElectrifyAmerica || isEVgo || isBlink || 
+                           hasHighPower || hasMediumPower || hasLowPower;
                 });
-                
-                // Log filter results
-                if (filters.fastOnly) {
-                    const fastCount = originalChargers.filter(charger => 
-                        charger.Connections && charger.Connections.some(conn => conn.LevelID === 3)
-                    ).length;
-                    console.log(`Fast chargers found: ${fastCount}`);
-                }
-                
-                if (filters.teslaSupercharger) {
-                    const superchargerCount = originalChargers.filter(charger => 
-                        charger.OperatorInfo && 
-                        charger.OperatorInfo.Title === 'Tesla (Tesla-only charging)' &&
-                        charger.Connections && 
-                        charger.Connections.some(conn => 
-                            conn.ConnectionType && 
-                            (
-                                conn.ConnectionType.Title === 'NACS / Tesla Supercharger' ||
-                                conn.ConnectionType.Title === 'Tesla Supercharger' ||
-                                conn.ConnectionType.Title === 'Tesla (Model S/X)' ||
-                                (conn.LevelID === 3 && conn.PowerKW && conn.PowerKW >= 72)
-                            )
-                        )
-                    ).length;
-                    console.log(`Tesla Superchargers found: ${superchargerCount}`);
-                }
-                
-                if (filters.teslaDestination) {
-                    const destinationCount = originalChargers.filter(charger => 
-                        charger.OperatorInfo && 
-                        charger.OperatorInfo.Title === 'Tesla (Tesla-only charging)' &&
-                        charger.Connections && 
-                        charger.Connections.some(conn => 
-                            conn.ConnectionType && 
-                            (
-                                conn.ConnectionType.Title === 'Tesla Destination' ||
-                                conn.ConnectionType.Title === 'Tesla (Model S/X)' ||
-                                (conn.LevelID === 2 && conn.PowerKW && conn.PowerKW < 72)
-                            )
-                        )
-                    ).length;
-                    console.log(`Tesla Destination Chargers found: ${destinationCount}`);
-                }
-                
-                if (filters.chargepointOnly) {
-                    const chargepointCount = originalChargers.filter(charger => 
-                        charger.OperatorInfo && charger.OperatorInfo.Title === 'ChargePoint'
-                    ).length;
-                    console.log(`ChargePoint chargers found: ${chargepointCount}`);
-                }
-                
-                console.log(`Final number of chargers after filters: ${chargers.length}`);
             }
+            
+            console.log(`Final number of chargers after filters: ${chargers.length}`);
             
             if (chargers.length === 0) {
                 console.warn("No chargers found in this area");
@@ -215,8 +176,22 @@ export async function getChargers(lat, lon, filters) {
             });
             
             // Apply filters
-            if (Object.values(filters).some(value => value === true)) {
-                const originalChargers = [...chargers];
+            const originalChargers = [...chargers];
+            
+            // Always apply operational filter if it's checked
+            if (filters.operationalOnly) {
+                chargers = chargers.filter(charger => 
+                    charger.StatusType && charger.StatusType.Title === 'Operational'
+                );
+            }
+
+            // Check if any non-operational filters are selected
+            const hasActiveFilters = Object.entries(filters).some(([key, value]) => 
+                key !== 'operationalOnly' && value === true
+            );
+
+            // Only apply other filters if any are selected
+            if (hasActiveFilters) {
                 chargers = chargers.filter(charger => {
                     // Check if charger matches any of the selected filters
                     const isFast = filters.fastOnly && charger.Connections && charger.Connections.some(conn => conn.LevelID === 3);
@@ -257,72 +232,19 @@ export async function getChargers(lat, lon, filters) {
                     const isEVgo = filters.evgo && charger.OperatorInfo && charger.OperatorInfo.Title === 'EVgo';
                     const isBlink = filters.blink && charger.OperatorInfo && charger.OperatorInfo.Title === 'Blink Charging';
                     
-                    // Check operational status
-                    const isOperational = !filters.operationalOnly || (charger.StatusType && charger.StatusType.Title === 'Operational');
-                    
                     // Check power output
                     const hasHighPower = filters.highPower && charger.Connections && charger.Connections.some(conn => conn.PowerKW && conn.PowerKW >= 150);
                     const hasMediumPower = filters.mediumPower && charger.Connections && charger.Connections.some(conn => conn.PowerKW && conn.PowerKW >= 50 && conn.PowerKW < 150);
                     const hasLowPower = filters.lowPower && charger.Connections && charger.Connections.some(conn => conn.PowerKW && conn.PowerKW < 50);
                     
                     // Return true if any of the selected filters match
-                    return (isFast || isLevel2 || isTeslaSupercharger || isTeslaDestination || 
-                            isChargePoint || isElectrifyAmerica || isEVgo || isBlink || 
-                            hasHighPower || hasMediumPower || hasLowPower) && isOperational;
+                    return isFast || isLevel2 || isTeslaSupercharger || isTeslaDestination || 
+                           isChargePoint || isElectrifyAmerica || isEVgo || isBlink || 
+                           hasHighPower || hasMediumPower || hasLowPower;
                 });
-                
-                // Log filter results
-                if (filters.fastOnly) {
-                    const fastCount = originalChargers.filter(charger => 
-                        charger.Connections && charger.Connections.some(conn => conn.LevelID === 3)
-                    ).length;
-                    console.log(`Fast chargers found (proxy): ${fastCount}`);
-                }
-                
-                if (filters.teslaSupercharger) {
-                    const superchargerCount = originalChargers.filter(charger => 
-                        charger.OperatorInfo && 
-                        charger.OperatorInfo.Title === 'Tesla (Tesla-only charging)' &&
-                        charger.Connections && 
-                        charger.Connections.some(conn => 
-                            conn.ConnectionType && 
-                            (
-                                conn.ConnectionType.Title === 'NACS / Tesla Supercharger' ||
-                                conn.ConnectionType.Title === 'Tesla Supercharger' ||
-                                conn.ConnectionType.Title === 'Tesla (Model S/X)' ||
-                                (conn.LevelID === 3 && conn.PowerKW && conn.PowerKW >= 72)
-                            )
-                        )
-                    ).length;
-                    console.log(`Tesla Superchargers found (proxy): ${superchargerCount}`);
-                }
-                
-                if (filters.teslaDestination) {
-                    const destinationCount = originalChargers.filter(charger => 
-                        charger.OperatorInfo && 
-                        charger.OperatorInfo.Title === 'Tesla (Tesla-only charging)' &&
-                        charger.Connections && 
-                        charger.Connections.some(conn => 
-                            conn.ConnectionType && 
-                            (
-                                conn.ConnectionType.Title === 'Tesla Destination' ||
-                                conn.ConnectionType.Title === 'Tesla (Model S/X)' ||
-                                (conn.LevelID === 2 && conn.PowerKW && conn.PowerKW < 72)
-                            )
-                        )
-                    ).length;
-                    console.log(`Tesla Destination Chargers found (proxy): ${destinationCount}`);
-                }
-                
-                if (filters.chargepointOnly) {
-                    const chargepointCount = originalChargers.filter(charger => 
-                        charger.OperatorInfo && charger.OperatorInfo.Title === 'ChargePoint'
-                    ).length;
-                    console.log(`ChargePoint chargers found (proxy): ${chargepointCount}`);
-                }
-                
-                console.log(`Final number of chargers after filters (proxy): ${chargers.length}`);
             }
+            
+            console.log(`Final number of chargers after filters (proxy): ${chargers.length}`);
             
             return chargers;
         }
