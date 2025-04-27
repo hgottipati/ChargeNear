@@ -80,14 +80,25 @@ class MapManager {
                 const map = await this.getMap();
                 const center = map.getCenter();
                 
-                // Safely get checkbox states
-                const fastOnly = document.getElementById("fastOnly")?.checked || false;
-                const teslaSupercharger = document.getElementById("teslaSupercharger")?.checked || false;
-                const teslaDestination = document.getElementById("teslaDestination")?.checked || false;
-                const chargepointOnly = document.getElementById("chargepointOnly")?.checked || false;
+                // Get all filter states
+                const filters = {
+                    fastOnly: document.getElementById("fastOnly")?.checked || false,
+                    level2Only: document.getElementById("level2Only")?.checked || false,
+                    teslaSupercharger: document.getElementById("teslaSupercharger")?.checked || false,
+                    teslaDestination: document.getElementById("teslaDestination")?.checked || false,
+                    chargepointOnly: document.getElementById("chargepointOnly")?.checked || false,
+                    electrifyAmerica: document.getElementById("electrifyAmerica")?.checked || false,
+                    evgo: document.getElementById("evgo")?.checked || false,
+                    blink: document.getElementById("blink")?.checked || false,
+                    operationalOnly: document.getElementById("operationalOnly")?.checked || false,
+                    highPower: document.getElementById("highPower")?.checked || false,
+                    mediumPower: document.getElementById("mediumPower")?.checked || false,
+                    lowPower: document.getElementById("lowPower")?.checked || false
+                };
                 
                 try {
-                    const chargers = await getChargers(center.lat, center.lng, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
+                    // Always fetch chargers, but pass the filters
+                    const chargers = await getChargers(center.lat, center.lng, filters);
                     addChargersToMap(chargers, [center.lng, center.lat]);
                 } catch (error) {
                     console.error("Error fetching chargers on map move:", error.message);
