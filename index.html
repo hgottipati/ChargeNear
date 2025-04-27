@@ -184,19 +184,21 @@
             }
 
             .filter-button {
-                width: 32px;
-                height: 32px;
-                min-width: 32px;
-                min-height: 32px;
-                max-width: 32px;
-                max-height: 32px;
+                width: 40px !important;
+                height: 40px !important;
                 aspect-ratio: 1 / 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0 !important;
+                margin: 0 !important;
                 box-sizing: border-box;
-                padding: 0; /* Ensure no extra padding */
             }
 
             .filter-button i {
-                font-size: 1.2rem;
+                font-size: 1.3rem;
+                margin: 0 !important;
+                padding: 0 !important;
             }
         }
 
@@ -216,17 +218,13 @@
             }
 
             .filter-button {
-                width: 22px;
-                height: 22px;
-                min-width: 22px;
-                min-height: 22px;
-                max-width: 22px;
-                max-height: 22px;
-                box-sizing: border-box;
+                width: 32px !important;
+                height: 32px !important;
+                aspect-ratio: 1 / 1;
             }
 
             .filter-button i {
-                font-size: 0.7rem;
+                font-size: 1.1rem;
             }
         }
         /* Disable UI until map is ready */
@@ -283,8 +281,9 @@
             background: white;
             border: none;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
+            aspect-ratio: 1 / 1;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -294,7 +293,6 @@
             color: #00355F;
             margin: 0;
             padding: 0;
-            aspect-ratio: 1;
             flex-shrink: 0;
             flex-grow: 0;
             box-sizing: border-box;
@@ -306,7 +304,7 @@
         }
 
         .filter-button i {
-            font-size: 1rem;
+            font-size: 1.3rem;
             line-height: 1;
             width: 1em;
             height: 1em;
@@ -661,5 +659,36 @@
             setupSelectAll('section-power', 'selectAllPower', 'power-child');
         });
     </script>
+
+    <div class="header">
+        <h1>ChargeNear</h1>
+        <div id="authContainer">
+            <div id="loginForm">
+                <h2>Login</h2>
+                <form>
+                    <input type="text" id="loginUsername" placeholder="Username" required>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <button type="submit" id="loginBtn">Login</button>
+                </form>
+                <p>Don't have an account? <a href="#" id="showRegister">Register</a></p>
+            </div>
+            <div id="registerForm" style="display: none;">
+                <h2>Register</h2>
+                <form>
+                    <input type="text" id="registerUsername" placeholder="Username" required>
+                    <input type="email" id="registerEmail" placeholder="Email" required>
+                    <input type="password" id="registerPassword" placeholder="Password" required>
+                    <button type="submit" id="registerBtn">Register</button>
+                </form>
+                <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
+            </div>
+        </div>
+        <div id="userInfo" style="display: none;">
+            <p>Welcome, <span id="usernameDisplay"></span>!</p>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
 </body>
 </html>
