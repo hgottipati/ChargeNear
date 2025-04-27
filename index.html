@@ -184,8 +184,9 @@
                 padding: 0 !important;
                 margin: 0 !important;
                 box-sizing: border-box;
-                top: calc(var(--header-height) + 8px + 80px);
-                right: 8px;
+                top: 100%;
+                right: 0;
+                margin-top: 8px;
             }
         }
 
@@ -210,8 +211,9 @@
                 width: 32px !important;
                 height: 32px !important;
                 aspect-ratio: 1 / 1;
-                top: calc(var(--header-height) + 8px + 80px);
-                right: 8px;
+                top: 100%;
+                right: 0;
+                margin-top: 8px;
             }
         }
         /* Disable UI until map is ready */
@@ -284,7 +286,7 @@
             flex-grow: 0;
             box-sizing: border-box;
             position: absolute;
-            top: calc(var(--header-height) + 16px + 80px); /* Position it below the Mapbox control group */
+            top: calc(var(--header-height) + 16px + 80px);
             right: 10px;
         }
 
@@ -509,6 +511,17 @@
             height: 1.3em;
             display: block;
             margin: auto;
+        }
+        /* Position filter button relative to Mapbox controls */
+        .mapboxgl-ctrl-group {
+            position: relative;
+        }
+
+        .filter-button {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
         }
     </style>
 </head>
