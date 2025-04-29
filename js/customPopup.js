@@ -224,51 +224,144 @@ export class CustomPopup {
     }
 
     async updateNearbyChargers() {
-        const nearbyList = this.container.querySelector('.nearby-chargers-list');
-        if (!nearbyList) return;
+        const nearbySection = this.container.querySelector('.nearby-chargers-section');
+        const chargersList = nearbySection.querySelector('.nearby-chargers-list');
+        if (!chargersList) {
+            console.error('Chargers list not found');
+            return;
+        }
+
+        chargersList.innerHTML = '<div class="loading">Loading nearby chargers...</div>';
+
+        let getChargersFunc;
+        try {
+            const api = await import('./api.js');
+            getChargersFunc = api.getChargers;
+        } catch (error) {
+            console.error("Error importing getChargers:", error);
+            chargersList.innerHTML = `
+                <div class="error-message">
+                    Failed to load chargers. Please try again.
+                    <button onclick="updateNearbyChargers(this.closest('.nearby-section'))">Try Again</button>
+                </div>`;
+            return;
+        }
 
         try {
-            // Get current map bounds or center point
-            const map = await window.getMap();
-            if (!map) return;
-
-            const center = map.getCenter();
-            const chargers = await window.getChargers(center.lat, center.lng);
+            const chargers = await getChargersFunc();
+            console.log('Fetched chargers:', chargers);
 
             if (!chargers || chargers.length === 0) {
-                nearbyList.innerHTML = '<p style="color: #5d6d7e;">No chargers found nearby.</p>';
+                chargersList.innerHTML = `
+                    <div class="no-chargers">
+                        <p>No chargers found in your area.</p>
+                        <button onclick="updateNearbyChargers(this.closest('.nearby-section'))">Try Again</button>
+                    </div>`;
                 return;
             }
 
-            // Sort chargers by distance and take the first 5
-            const nearbyChargers = chargers.slice(0, 5);
-            
-            nearbyList.innerHTML = nearbyChargers.map(charger => {
-                const status = charger.StatusType?.Title || 'Unknown';
-                const statusColor = status === 'Operational' ? '#4CAF50' : '#f44336';
-                const distance = charger.distance ? `${charger.distance.toFixed(1)} mi` : 'N/A';
+            // Sort chargers by distance
+            const sortedChargers = chargers.sort((a, b) => {
+                const distA = a.AddressInfo?.Distance || Infinity;
+                const distB = b.AddressInfo?.Distance || Infinity;
+                return distA - distB;
+            });
+
+            const chargerItems = sortedChargers.map(charger => {
+                const distance = charger.AddressInfo?.Distance 
+                    ? `${charger.AddressInfo.Distance.toFixed(1)} miles`
+                    : 'Distance unknown';
                 
+                const connectors = charger.Connections
+                    ?.map(conn => `${conn.ConnectionType?.Title || 'Unknown'} (${conn.PowerKW || '?'}kW)`)
+                    .join(', ') || 'No connector info';
+
                 return `
-                    <div style="
-                        background: #f8f9fa;
-                        border-radius: 8px;
-                        padding: 12px;
-                        margin-bottom: 12px;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                    " onclick="window.showChargerDetails(${charger.ID})">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 4px;">
-                            <div style="font-weight: 500; color: #00355F;">${charger.AddressInfo?.Title || 'Unknown Location'}</div>
-                            <div style="color: ${statusColor}; font-size: 12px;">${status}</div>
+                    <div class="charger-item" onclick="showChargerDetails('${charger.ID}')">
+                        <div class="charger-header">
+                            <h3>${charger.AddressInfo?.Title || 'Unnamed Location'}</h3>
+                            <span class="distance">${distance}</span>
                         </div>
-                        <div style="color: #5d6d7e; font-size: 13px;">${distance}</div>
-                    </div>
-                `;
+                        <div class="charger-details">
+                            <p class="address">${charger.AddressInfo?.AddressLine1 || ''}</p>
+                            <p class="connectors">${connectors}</p>
+                        </div>
+                    </div>`;
             }).join('');
 
+            chargersList.innerHTML = chargerItems;
+
+            // Add styles for the charger items
+            const style = document.createElement('style');
+            style.textContent = `
+                .charger-item {
+                    padding: 15px;
+                    border-bottom: 1px solid #eee;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+                .charger-item:hover {
+                    background-color: #f5f5f5;
+                }
+                .charger-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 8px;
+                }
+                .charger-header h3 {
+                    margin: 0;
+                    font-size: 16px;
+                    color: #333;
+                }
+                .distance {
+                    color: #666;
+                    font-size: 14px;
+                }
+                .charger-details {
+                    font-size: 14px;
+                }
+                .address {
+                    color: #666;
+                    margin: 4px 0;
+                }
+                .connectors {
+                    color: #444;
+                    margin: 4px 0;
+                }
+                .loading {
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                }
+                .error-message, .no-chargers {
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                }
+                .error-message button, .no-chargers button {
+                    margin-top: 10px;
+                    padding: 8px 16px;
+                    background-color: #007bff;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+                .error-message button:hover, .no-chargers button:hover {
+                    background-color: #0056b3;
+                }
+            `;
+            document.head.appendChild(style);
+
         } catch (error) {
-            console.error('Error updating nearby chargers:', error);
-            nearbyList.innerHTML = '<p style="color: #5d6d7e;">Error loading nearby chargers.</p>';
+            console.error('Error fetching chargers:', error);
+            chargersList.innerHTML = `
+                <div class="error-message">
+                    Failed to load chargers. Please try again.
+                    <button onclick="updateNearbyChargers(this.closest('.nearby-section'))">Try Again</button>
+                </div>`;
         }
     }
 

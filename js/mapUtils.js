@@ -401,11 +401,17 @@ export function addChargersToMap(chargers, center) {
                             ${connectorInfo}
                         </div>
 
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" 
-                           target="_blank" 
-                           style="display: inline-block; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2);">
-                           <i class="fas fa-directions" style="margin-right: 6px;"></i>Get Directions
-                        </a>
+                        <div style="display: flex; gap: 10px;">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" 
+                               target="_blank" 
+                               style="flex: 1; display: inline-flex; align-items: center; justify-content: center; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2);">
+                               <i class="fas fa-directions" style="margin-right: 6px;"></i>Get Directions
+                            </a>
+                            <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude})" 
+                                    style="flex: 1; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer;">
+                                <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
+                            </button>
+                        </div>
                     </div>
                 `;
 
@@ -426,6 +432,25 @@ export function addChargersToMap(chargers, center) {
                         // Create and show new popup
                         currentPopup = new CustomPopup();
                         currentPopup.setHTML(popupHTML);
+                        
+                        // Add the share function to window scope
+                        window.shareCharger = (title, lat, lng) => {
+                            const text = `Check out this EV charger: ${title}`;
+                            const url = `https://www.google.com/maps?q=${lat},${lng}`;
+                            
+                            if (navigator.share) {
+                                navigator.share({
+                                    title: 'ChargeNear',
+                                    text: text,
+                                    url: url
+                                }).catch(console.error);
+                            } else {
+                                // Fallback for browsers that don't support Web Share API
+                                const fallbackUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+                                window.open(fallbackUrl, '_blank');
+                            }
+                        };
+                        
                         currentPopup.open();
                         console.log("Popup opened successfully");
                     } catch (error) {
@@ -512,3 +537,46 @@ class StyleToggleControl {
         this._map = undefined;
     }
 }
+
+window.showChargerDetails = async (chargerId) => {
+    try {
+        const map = await window.getMap();
+        if (!map) {
+            console.error('Map not available');
+            return;
+        }
+
+        // Import getChargerDetails if needed
+        let getChargerDetails;
+        try {
+            const api = await import('./api.js');
+            getChargerDetails = api.getChargerDetails;
+        } catch (error) {
+            console.error("Error importing getChargerDetails:", error);
+            return;
+        }
+
+        const charger = await getChargerDetails(chargerId);
+        if (!charger) {
+            console.error('Charger details not found');
+            return;
+        }
+
+        // Center map on the charger location
+        const position = {
+            lat: charger.AddressInfo.Latitude,
+            lng: charger.AddressInfo.Longitude
+        };
+        
+        map.setCenter(position);
+        map.setZoom(16);
+
+        // Show the charger's marker info window
+        const marker = window.markers.find(m => m.chargerId === chargerId);
+        if (marker) {
+            google.maps.event.trigger(marker, 'click');
+        }
+    } catch (error) {
+        console.error('Error showing charger details:', error);
+    }
+};
