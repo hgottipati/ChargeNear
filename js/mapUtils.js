@@ -295,18 +295,32 @@ export function addChargersToMap(chargers, center) {
                 const { Latitude, Longitude, Title, AddressLine1, Town, StateOrProvince, Postcode } = charger.AddressInfo;
                 
                 // Format the connector information
-                let connectorInfo = '<p><strong>Connectors:</strong></p><ul style="margin-top: 5px; padding-left: 20px;">';
+                let connectorInfo = '<div style="margin-top: 8px;">';
                 if (charger.Connections && charger.Connections.length > 0) {
                     charger.Connections.forEach(conn => {
                         const connectorType = conn.ConnectionType ? conn.ConnectionType.Title : 'Unknown';
                         const powerKW = conn.PowerKW ? `${conn.PowerKW} kW` : 'Unknown power';
                         const quantity = conn.Quantity > 1 ? `(${conn.Quantity} available)` : '';
-                        connectorInfo += `<li>${connectorType} - ${powerKW} ${quantity}</li>`;
+                        const status = conn.StatusType ? conn.StatusType.Title : 'Unknown';
+                        const statusColor = status === 'Operational' ? '#4CAF50' : '#f44336';
+                        
+                        connectorInfo += `
+                            <div style="background: #ffffff; border-radius: 6px; padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="font-weight: 500; color: #00355F;">${connectorType}</span>
+                                    <span style="color: ${statusColor}; font-size: 12px; font-weight: 500;">${status}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #5d6d7e; font-size: 12px;">${powerKW}</span>
+                                    <span style="color: #5d6d7e; font-size: 12px;">${quantity}</span>
+                                </div>
+                            </div>
+                        `;
                     });
                 } else {
-                    connectorInfo += '<li>Connector information not available</li>';
+                    connectorInfo += '<div style="color: #5d6d7e; font-size: 13px;">Connector information not available</div>';
                 }
-                connectorInfo += '</ul>';
+                connectorInfo += '</div>';
                 
                 // Get operator information
                 const operatorName = charger.OperatorInfo ? charger.OperatorInfo.Title : 'Unknown operator';
@@ -320,7 +334,7 @@ export function addChargersToMap(chargers, center) {
                 // Get status information
                 const statusTitle = charger.StatusType ? charger.StatusType.Title : 'Unknown status';
                 const isOperational = statusTitle === 'Operational';
-                const statusColor = isOperational ? 'green' : 'red';
+                const statusColor = isOperational ? '#4CAF50' : '#f44336';
                 
                 // Determine marker color
                 let markerColor = '#4CAF50'; // Default green
@@ -348,6 +362,9 @@ export function addChargersToMap(chargers, center) {
                     }
                 }
                 
+                // Get last updated time
+                const lastUpdated = charger.DateLastStatusUpdate ? new Date(charger.DateLastStatusUpdate).toLocaleString() : 'Unknown';
+                
                 // Format the address
                 const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
                 
@@ -369,9 +386,12 @@ export function addChargersToMap(chargers, center) {
                                     <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Status</span>
                                     <span style="color: ${statusColor}; font-weight: 600;">${statusTitle}</span>
                                 </p>
-                                <p style="margin: 0; font-size: 13px;">
+                                <p style="margin: 0 0 10px 0; font-size: 13px;">
                                     <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Cost</span>
                                     <span style="color: #00355F;">${usageCost}</span>
+                                </p>
+                                <p style="margin: 0; font-size: 12px; color: #5d6d7e;">
+                                    <i class="fas fa-clock" style="margin-right: 4px;"></i>Last updated: ${lastUpdated}
                                 </p>
                             </div>
 
