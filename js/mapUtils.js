@@ -412,21 +412,21 @@ export function addChargersToMap(chargers, center) {
                                         style="width: 100%; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer;">
                                     <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
                                 </button>
-                                <div class="share-menu" style="display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; overflow: hidden; min-width: 200px;">
+                                <div class="share-menu" style="display: none; position: fixed; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000; overflow: hidden; min-width: 200px;">
                                     <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'copy')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee; hover: background-color: #f5f5f5;">
                                         <i class="fas fa-link" style="width: 20px; color: #00355F;"></i> Copy Link
                                     </button>
                                     <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'twitter')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee; hover: background-color: #f5f5f5;">
                                         <i class="fab fa-twitter" style="width: 20px; color: #1DA1F2;"></i> Share on Twitter
                                     </button>
                                     <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'facebook')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee; hover: background-color: #f5f5f5;">
                                         <i class="fab fa-facebook" style="width: 20px; color: #4267B2;"></i> Share on Facebook
                                     </button>
                                     <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'whatsapp')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s;">
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; hover: background-color: #f5f5f5;">
                                         <i class="fab fa-whatsapp" style="width: 20px; color: #25D366;"></i> Share on WhatsApp
                                     </button>
                                 </div>
@@ -463,24 +463,41 @@ export function addChargersToMap(chargers, center) {
                                 if (m !== menu) m.style.display = 'none';
                             });
                             
-                            menu.style.display = isVisible ? 'none' : 'block';
-                            
-                            // Position the menu to ensure it's visible
                             if (!isVisible) {
                                 const rect = button.getBoundingClientRect();
                                 const viewportHeight = window.innerHeight;
+                                const viewportWidth = window.innerWidth;
+                                
+                                // Show the menu first but hidden to calculate its dimensions
+                                menu.style.display = 'block';
+                                menu.style.visibility = 'hidden';
                                 const menuHeight = menu.offsetHeight;
+                                const menuWidth = menu.offsetWidth;
+                                
+                                // Calculate position
+                                let left = rect.right + 10; // Position to the right of the button
+                                let top = rect.top;
                                 
                                 // Check if menu would go below viewport
-                                if (rect.bottom + menuHeight > viewportHeight) {
-                                    menu.style.top = 'auto';
-                                    menu.style.bottom = 'calc(100% + 8px)';
-                                } else {
-                                    menu.style.top = 'calc(100% + 8px)';
-                                    menu.style.bottom = 'auto';
+                                if (rect.top + menuHeight > viewportHeight) {
+                                    top = viewportHeight - menuHeight - 10;
                                 }
                                 
-                                // Close menu when clicking outside
+                                // Check if menu would go off the right edge
+                                if (left + menuWidth > viewportWidth) {
+                                    left = rect.left - menuWidth - 10; // Position to the left of the button
+                                }
+                                
+                                // Apply position
+                                menu.style.left = `${left}px`;
+                                menu.style.top = `${top}px`;
+                                menu.style.visibility = 'visible';
+                            } else {
+                                menu.style.display = 'none';
+                            }
+                            
+                            // Close menu when clicking outside
+                            if (!isVisible) {
                                 const closeMenu = (e) => {
                                     if (!menu.contains(e.target) && e.target !== button) {
                                         menu.style.display = 'none';
