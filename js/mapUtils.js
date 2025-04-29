@@ -441,6 +441,9 @@ export function addChargersToMap(chargers, center) {
                 const marker = new mapboxgl.Marker({ color: markerColor })
                     .setLngLat([Longitude, Latitude])
                     .addTo(map);
+                
+                // Add charger ID to marker for identification
+                marker.chargerId = charger.ID;
 
                 // Add click handler for the marker
                 marker.getElement().addEventListener('click', () => {

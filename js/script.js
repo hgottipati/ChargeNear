@@ -129,5 +129,63 @@ window.showChargers = function() {
     return showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker);
 };
 
+// Function to handle shared charger URLs
+async function handleSharedCharger() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const chargerId = urlParams.get('chargerId');
+    
+    if (chargerId) {
+        try {
+            const { getChargers } = await import('./api.js');
+            const { addChargersToMap } = await import('./mapUtils.js');
+            
+            // Get the charger details
+            const filters = {
+                fastOnly: false,
+                level2Only: false,
+                teslaSupercharger: false,
+                teslaDestination: false,
+                chargepointOnly: false,
+                electrifyAmerica: false,
+                evgo: false,
+                blink: false,
+                operationalOnly: false
+            };
+            
+            // First get all chargers in the area
+            const chargers = await getChargers(47.6062, -122.3321, filters); // Default to Seattle coordinates
+            const targetCharger = chargers.find(c => c.ID === chargerId);
+            
+            if (targetCharger) {
+                const map = await window.getMap();
+                // Center map on the charger location
+                map.flyTo({
+                    center: [targetCharger.AddressInfo.Longitude, targetCharger.AddressInfo.Latitude],
+                    zoom: 15,
+                    essential: true
+                });
+                
+                // Add the charger to the map
+                addChargersToMap([targetCharger], [targetCharger.AddressInfo.Longitude, targetCharger.AddressInfo.Latitude]);
+                
+                // Trigger click on the marker to show details
+                setTimeout(() => {
+                    const marker = window.markers.find(m => m.chargerId === chargerId);
+                    if (marker) {
+                        marker.getElement().click();
+                    }
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Error handling shared charger:', error);
+        }
+    }
+}
+
+// Call the function when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    handleSharedCharger();
+});
+
 // Start the app
 init();
