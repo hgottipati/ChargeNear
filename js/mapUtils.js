@@ -458,6 +458,7 @@ export function addChargersToMap(chargers, center) {
                         
                         // Add the share functions to window scope
                         window.toggleShareMenu = (button) => {
+                            console.log('Toggle share menu clicked');
                             const menu = button.nextElementSibling;
                             const isVisible = menu.style.display === 'block';
                             
@@ -467,39 +468,63 @@ export function addChargersToMap(chargers, center) {
                             });
                             
                             if (!isVisible) {
+                                console.log('Opening share menu');
                                 const rect = button.getBoundingClientRect();
+                                console.log('Button rect:', rect);
                                 const viewportHeight = window.innerHeight;
                                 const viewportWidth = window.innerWidth;
                                 
-                                // Show the menu first but hidden to calculate its dimensions
+                                // Force the menu to be visible for measurements
                                 menu.style.display = 'block';
                                 menu.style.visibility = 'hidden';
+                                menu.style.position = 'fixed'; // Change to fixed positioning
                                 const menuHeight = menu.offsetHeight;
                                 const menuWidth = menu.offsetWidth;
                                 
                                 // Check if we're on mobile
                                 const isMobile = window.innerWidth <= 768;
+                                console.log('Is mobile:', isMobile);
                                 
                                 if (isMobile) {
-                                    // On mobile, position the menu above the button
-                                    menu.style.bottom = '100%';
-                                    menu.style.left = '0';
-                                    menu.style.right = '0';
-                                    menu.style.top = 'auto';
-                                    menu.style.marginBottom = '8px';
-                                    // If it would go above viewport, position it below the button
-                                    if (rect.top - menuHeight < 0) {
-                                        menu.style.bottom = 'auto';
-                                        menu.style.top = '100%';
-                                        menu.style.marginBottom = '0';
-                                        menu.style.marginTop = '8px';
+                                    // Reset any previous positioning
+                                    menu.style.top = '';
+                                    menu.style.bottom = '';
+                                    menu.style.left = '';
+                                    menu.style.right = '';
+                                    menu.style.marginTop = '';
+                                    menu.style.marginBottom = '';
+                                    menu.style.marginLeft = '';
+                                    menu.style.marginRight = '';
+                                    
+                                    // Calculate available space above and below
+                                    const spaceAbove = rect.top;
+                                    const spaceBelow = viewportHeight - (rect.bottom);
+                                    
+                                    if (spaceBelow >= menuHeight + 10 || spaceBelow > spaceAbove) {
+                                        // Position below the button
+                                        menu.style.top = `${rect.bottom + 10}px`;
+                                        menu.style.left = `${Math.max(10, rect.left)}px`;
+                                        menu.style.width = `${Math.min(menuWidth, viewportWidth - 20)}px`;
+                                    } else {
+                                        // Position above the button
+                                        menu.style.bottom = `${viewportHeight - rect.top + 10}px`;
+                                        menu.style.left = `${Math.max(10, rect.left)}px`;
+                                        menu.style.width = `${Math.min(menuWidth, viewportWidth - 20)}px`;
+                                    }
+                                    
+                                    // Ensure menu doesn't go off screen
+                                    const menuRect = menu.getBoundingClientRect();
+                                    if (menuRect.right > viewportWidth - 10) {
+                                        menu.style.left = `${viewportWidth - menuWidth - 10}px`;
                                     }
                                 } else {
-                                    // On desktop, position to the right of the button
+                                    // Desktop positioning
+                                    menu.style.position = 'absolute';
                                     menu.style.top = '0';
                                     menu.style.left = '100%';
                                     menu.style.marginLeft = '8px';
-                                    // If it would go off screen to the right, position to the left
+                                    menu.style.width = 'auto';
+                                    
                                     if (rect.right + menuWidth + 8 > viewportWidth) {
                                         menu.style.left = 'auto';
                                         menu.style.right = '100%';
@@ -509,7 +534,20 @@ export function addChargersToMap(chargers, center) {
                                 }
                                 
                                 menu.style.visibility = 'visible';
+                                console.log('Share menu positioned and shown');
+                                
+                                // Add touch event handler for mobile
+                                if (isMobile) {
+                                    const touchHandler = (e) => {
+                                        if (!menu.contains(e.target) && e.target !== button) {
+                                            menu.style.display = 'none';
+                                            document.removeEventListener('touchstart', touchHandler);
+                                        }
+                                    };
+                                    setTimeout(() => document.addEventListener('touchstart', touchHandler), 0);
+                                }
                             } else {
+                                console.log('Closing share menu');
                                 menu.style.display = 'none';
                             }
                             
