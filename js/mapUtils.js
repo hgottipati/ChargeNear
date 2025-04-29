@@ -644,7 +644,13 @@ export function addChargersToMap(chargers, center) {
                                     break;
                                     
                                 case 'whatsapp':
-                                    window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+                                    // WhatsApp sharing URL with text and location
+                                    const whatsappText = encodeURIComponent(`${text}\n\nLocation: ${address}\n${url}`);
+                                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                                    const whatsappUrl = isMobile ? 
+                                        `whatsapp://send?text=${whatsappText}` : 
+                                        `https://web.whatsapp.com/send?text=${whatsappText}`;
+                                    window.open(whatsappUrl, '_blank');
                                     break;
                                     
                                 default:
