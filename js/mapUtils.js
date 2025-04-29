@@ -510,12 +510,31 @@ export function addChargersToMap(chargers, center) {
 
                         window.shareCharger = (title, lat, lng, method) => {
                             const text = `Check out this EV charger: ${title}`;
-                            const url = `https://www.google.com/maps?q=${lat},${lng}`;
+                            const currentUrl = new URL(window.location.href);
+                            currentUrl.searchParams.set('chargerId', charger.ID);
+                            const url = currentUrl.toString();
                             
                             switch (method) {
                                 case 'copy':
                                     navigator.clipboard.writeText(url).then(() => {
-                                        alert('Link copied to clipboard!');
+                                        // Create and show a temporary success message
+                                        const successMsg = document.createElement('div');
+                                        successMsg.textContent = 'Link copied to clipboard!';
+                                        successMsg.style.cssText = `
+                                            position: fixed;
+                                            bottom: 20px;
+                                            left: 50%;
+                                            transform: translateX(-50%);
+                                            background: #4CAF50;
+                                            color: white;
+                                            padding: 12px 24px;
+                                            border-radius: 8px;
+                                            font-size: 14px;
+                                            z-index: 10000;
+                                            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                        `;
+                                        document.body.appendChild(successMsg);
+                                        setTimeout(() => successMsg.remove(), 3000);
                                     }).catch(err => {
                                         console.error('Failed to copy:', err);
                                         alert('Failed to copy link. Please try again.');
@@ -544,7 +563,23 @@ export function addChargersToMap(chargers, center) {
                                     } else {
                                         // Fallback to copy
                                         navigator.clipboard.writeText(url).then(() => {
-                                            alert('Link copied to clipboard!');
+                                            const successMsg = document.createElement('div');
+                                            successMsg.textContent = 'Link copied to clipboard!';
+                                            successMsg.style.cssText = `
+                                                position: fixed;
+                                                bottom: 20px;
+                                                left: 50%;
+                                                transform: translateX(-50%);
+                                                background: #4CAF50;
+                                                color: white;
+                                                padding: 12px 24px;
+                                                border-radius: 8px;
+                                                font-size: 14px;
+                                                z-index: 10000;
+                                                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                            `;
+                                            document.body.appendChild(successMsg);
+                                            setTimeout(() => successMsg.remove(), 3000);
                                         }).catch(console.error);
                                     }
                             }
