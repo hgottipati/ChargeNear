@@ -412,10 +412,10 @@ export function addChargersToMap(chargers, center) {
                             </a>
                             <div style="position: relative; flex: 1;">
                                 <button onclick="toggleShareMenu(this)" 
-                                        style="width: 100%; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer;">
+                                        style="width: 100%; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer; position: relative;">
                                     <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
                                 </button>
-                                <div class="share-menu" style="display: none; position: absolute; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100000; overflow: hidden; min-width: 200px;">
+                                <div class="share-menu" style="display: none; position: fixed; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000000; overflow: hidden; min-width: 200px;">
                                     <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'copy')" 
                                             style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
                                         <i class="fas fa-link" style="width: 20px; color: #00355F;"></i> Copy Link
@@ -477,14 +477,14 @@ export function addChargersToMap(chargers, center) {
                                 // Force the menu to be visible for measurements
                                 menu.style.display = 'block';
                                 menu.style.visibility = 'hidden';
-                                menu.style.zIndex = '100000'; // Ensure highest z-index
+                                menu.style.zIndex = '1000000'; // Even higher z-index
                                 
                                 // Check if we're on mobile
                                 const isMobile = window.innerWidth <= 768;
                                 console.log('Is mobile:', isMobile);
                                 
                                 if (isMobile) {
-                                    menu.style.position = 'fixed'; // Fixed positioning for mobile
+                                    // Mobile positioning
                                     const menuHeight = menu.offsetHeight;
                                     const menuWidth = menu.offsetWidth;
                                     
@@ -521,18 +521,23 @@ export function addChargersToMap(chargers, center) {
                                     }
                                 } else {
                                     // Desktop positioning
-                                    menu.style.position = 'absolute'; // Absolute positioning for desktop
-                                    menu.style.width = 'auto';
-                                    menu.style.top = '0';
-                                    menu.style.left = '100%';
-                                    menu.style.marginLeft = '8px';
-                                    
                                     const menuWidth = menu.offsetWidth;
+                                    const menuHeight = menu.offsetHeight;
+                                    
+                                    // Position relative to viewport but aligned with button
+                                    menu.style.position = 'fixed';
+                                    menu.style.top = `${rect.top}px`;
+                                    menu.style.left = `${rect.right + 8}px`; // 8px gap from button
+                                    menu.style.width = 'auto';
+                                    
+                                    // Check if menu would go off right edge
                                     if (rect.right + menuWidth + 8 > viewportWidth) {
-                                        menu.style.left = 'auto';
-                                        menu.style.right = '100%';
-                                        menu.style.marginLeft = '0';
-                                        menu.style.marginRight = '8px';
+                                        menu.style.left = `${rect.left - menuWidth - 8}px`; // Position to left of button
+                                    }
+                                    
+                                    // Check if menu would go off bottom edge
+                                    if (rect.top + menuHeight > viewportHeight) {
+                                        menu.style.top = `${viewportHeight - menuHeight - 10}px`;
                                     }
                                 }
                                 
