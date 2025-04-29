@@ -821,3 +821,62 @@ window.showChargerDetails = async (chargerId) => {
         console.error('Error showing charger details:', error);
     }
 };
+
+function createPopupContent(charger) {
+    const address = charger.AddressInfo;
+    const connections = charger.Connections;
+    
+    const powerLevels = connections.map(conn => conn.PowerKW || 0);
+    const maxPower = Math.max(...powerLevels);
+    
+    const powerClass = maxPower >= 50 ? 'high-power' :
+                      maxPower >= 20 ? 'medium-power' : 'low-power';
+
+    const statusClass = charger.StatusType?.IsOperational ? 'operational' : 'not-operational';
+    const statusText = charger.StatusType?.IsOperational ? 'Operational' : 'Not Operational';
+    
+    const connectionsHtml = connections.map(conn => {
+        const powerText = conn.PowerKW ? `${conn.PowerKW}kW` : 'Unknown power';
+        return `
+            <div class="connection-item">
+                <span class="connection-type">${conn.ConnectionType?.Title || 'Unknown'}</span>
+                <span class="connection-power">${powerText}</span>
+            </div>
+        `;
+    }).join('');
+
+    const directionUrl = `https://www.google.com/maps/dir/?api=1&destination=${address.Latitude},${address.Longitude}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?chargerId=${charger.ID}`;
+
+    return `
+        <div class="charger-popup ${powerClass}">
+            <div class="charger-header">
+                <h2>${address.Title}</h2>
+                <div class="status-badge ${statusClass}">${statusText}</div>
+            </div>
+            
+            <div class="charger-address">
+                <p>${address.AddressLine1}</p>
+                <p>${address.Town}, ${address.StateOrProvince} ${address.Postcode}</p>
+            </div>
+
+            <div class="charger-connections">
+                <h3>Available Connectors</h3>
+                <div class="connections-list">
+                    ${connectionsHtml}
+                </div>
+            </div>
+
+            <div class="charger-actions">
+                <a href="${directionUrl}" target="_blank" class="action-button directions">
+                    <i class="fas fa-directions"></i>
+                    Get Directions
+                </a>
+                <button onclick="shareLocation('${shareUrl}', '${address.Title}')" class="action-button share">
+                    <i class="fas fa-share-alt"></i>
+                    Share
+                </button>
+            </div>
+        </div>
+    `;
+}
