@@ -566,7 +566,45 @@ export function addChargersToMap(chargers, center) {
                             const currentUrl = new URL(window.location.href);
                             currentUrl.searchParams.set('chargerId', charger.ID);
                             const url = currentUrl.toString();
-                            
+
+                            // Generate static map preview URL
+                            const mapboxToken = window.MAPBOX_TOKEN;
+                            const staticMapWidth = 1200;
+                            const staticMapHeight = 630;
+                            const zoom = 15;
+                            const marker = encodeURIComponent(`pin-l-charging+EEC218(${lng},${lat})`);
+                            const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${marker}/${lng},${lat},${zoom},0/${staticMapWidth}x${staticMapHeight}@2x?access_token=${mapboxToken}`;
+
+                            // Update meta tags for sharing preview
+                            const metaTags = document.getElementsByTagName('meta');
+                            const updateMetaTag = (property, content) => {
+                                let tag = Array.from(metaTags).find(tag => 
+                                    tag.getAttribute('property') === property || 
+                                    tag.getAttribute('name') === property
+                                );
+                                if (!tag) {
+                                    tag = document.createElement('meta');
+                                    tag.setAttribute(property.startsWith('og:') ? 'property' : 'name', property);
+                                    document.head.appendChild(tag);
+                                }
+                                tag.setAttribute('content', content);
+                            };
+
+                            // Update meta tags with dynamic content
+                            updateMetaTag('og:title', `${title} - ChargeNear`);
+                            updateMetaTag('og:description', `${address} - ${operatorName}. ${statusTitle} charging station with ${charger.Connections?.length || 0} connectors.`);
+                            updateMetaTag('og:image', staticMapUrl);
+                            updateMetaTag('og:image:width', staticMapWidth.toString());
+                            updateMetaTag('og:image:height', staticMapHeight.toString());
+                            updateMetaTag('og:url', url);
+                            updateMetaTag('og:type', 'website');
+
+                            // Update Twitter Card meta tags
+                            updateMetaTag('twitter:card', 'summary_large_image');
+                            updateMetaTag('twitter:title', `${title} - ChargeNear`);
+                            updateMetaTag('twitter:description', `${address} - ${operatorName}. ${statusTitle} charging station.`);
+                            updateMetaTag('twitter:image', staticMapUrl);
+
                             switch (method) {
                                 case 'copy':
                                     navigator.clipboard.writeText(url).then(() => {
