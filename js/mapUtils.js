@@ -415,15 +415,22 @@ export function addChargersToMap(chargers, center) {
 
                 // Add click handler for the marker
                 marker.getElement().addEventListener('click', () => {
-                    // Close any existing popup
-                    if (currentPopup) {
-                        currentPopup.close();
-                    }
+                    try {
+                        console.log("Marker clicked, creating popup...");
+                        // Close any existing popup
+                        if (currentPopup) {
+                            currentPopup.close();
+                            currentPopup = null;
+                        }
 
-                    // Create and show new popup
-                    currentPopup = new CustomPopup({ maxWidth: '350px' });
-                    currentPopup.setHTML(popupHTML);
-                    currentPopup.open();
+                        // Create and show new popup
+                        currentPopup = new CustomPopup();
+                        currentPopup.setHTML(popupHTML);
+                        currentPopup.open();
+                        console.log("Popup opened successfully");
+                    } catch (error) {
+                        console.error("Error showing popup:", error);
+                    }
                 });
 
                 markers.push(marker);
