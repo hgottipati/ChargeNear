@@ -407,10 +407,30 @@ export function addChargersToMap(chargers, center) {
                                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2);">
                                <i class="fas fa-directions" style="margin-right: 6px;"></i>Get Directions
                             </a>
-                            <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude})" 
-                                    style="flex: 1; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer;">
-                                <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
-                            </button>
+                            <div style="position: relative; flex: 1;">
+                                <button onclick="toggleShareMenu(this)" 
+                                        style="width: 100%; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer;">
+                                    <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
+                                </button>
+                                <div class="share-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 8px; z-index: 1000; overflow: hidden;">
+                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'copy')" 
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s;">
+                                        <i class="fas fa-link"></i> Copy Link
+                                    </button>
+                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'twitter')" 
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s;">
+                                        <i class="fab fa-twitter"></i> Share on Twitter
+                                    </button>
+                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'facebook')" 
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s;">
+                                        <i class="fab fa-facebook"></i> Share on Facebook
+                                    </button>
+                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'whatsapp')" 
+                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s;">
+                                        <i class="fab fa-whatsapp"></i> Share on WhatsApp
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -433,22 +453,74 @@ export function addChargersToMap(chargers, center) {
                         currentPopup = new CustomPopup();
                         currentPopup.setHTML(popupHTML);
                         
-                        // Add the share function to window scope
-                        window.shareCharger = (title, lat, lng) => {
+                        // Add the share functions to window scope
+                        window.toggleShareMenu = (button) => {
+                            const menu = button.nextElementSibling;
+                            const isVisible = menu.style.display === 'block';
+                            
+                            // Close all other share menus first
+                            document.querySelectorAll('.share-menu').forEach(m => {
+                                if (m !== menu) m.style.display = 'none';
+                            });
+                            
+                            menu.style.display = isVisible ? 'none' : 'block';
+                            
+                            // Close menu when clicking outside
+                            if (!isVisible) {
+                                const closeMenu = (e) => {
+                                    if (!menu.contains(e.target) && e.target !== button) {
+                                        menu.style.display = 'none';
+                                        document.removeEventListener('click', closeMenu);
+                                    }
+                                };
+                                setTimeout(() => document.addEventListener('click', closeMenu), 0);
+                            }
+                        };
+
+                        window.shareCharger = (title, lat, lng, method) => {
                             const text = `Check out this EV charger: ${title}`;
                             const url = `https://www.google.com/maps?q=${lat},${lng}`;
                             
-                            if (navigator.share) {
-                                navigator.share({
-                                    title: 'ChargeNear',
-                                    text: text,
-                                    url: url
-                                }).catch(console.error);
-                            } else {
-                                // Fallback for browsers that don't support Web Share API
-                                const fallbackUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-                                window.open(fallbackUrl, '_blank');
+                            switch (method) {
+                                case 'copy':
+                                    navigator.clipboard.writeText(url).then(() => {
+                                        alert('Link copied to clipboard!');
+                                    }).catch(err => {
+                                        console.error('Failed to copy:', err);
+                                        alert('Failed to copy link. Please try again.');
+                                    });
+                                    break;
+                                    
+                                case 'twitter':
+                                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                    
+                                case 'facebook':
+                                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+                                    break;
+                                    
+                                case 'whatsapp':
+                                    window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+                                    break;
+                                    
+                                default:
+                                    if (navigator.share) {
+                                        navigator.share({
+                                            title: 'ChargeNear',
+                                            text: text,
+                                            url: url
+                                        }).catch(console.error);
+                                    } else {
+                                        // Fallback to copy
+                                        navigator.clipboard.writeText(url).then(() => {
+                                            alert('Link copied to clipboard!');
+                                        }).catch(console.error);
+                                    }
                             }
+                            
+                            // Close the share menu
+                            const menu = document.querySelector('.share-menu');
+                            if (menu) menu.style.display = 'none';
                         };
                         
                         currentPopup.open();
