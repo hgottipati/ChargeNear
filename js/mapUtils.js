@@ -573,7 +573,10 @@ export function addChargersToMap(chargers, center) {
                             const staticMapHeight = 630;
                             const zoom = 15;
                             const marker = encodeURIComponent(`pin-l-charging+EEC218(${lng},${lat})`);
-                            const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${marker}/${lng},${lat},${zoom},0/${staticMapWidth}x${staticMapHeight}@2x?access_token=${mapboxToken}`;
+                            // Add banner overlay with ChargeNear branding
+                            const bannerText = encodeURIComponent(`[ChargeNear]`);
+                            const banner = encodeURIComponent(`box-l-t+00355F(${lng},${lat},${bannerText})`);
+                            const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${marker},${banner}/${lng},${lat},${zoom},0/${staticMapWidth}x${staticMapHeight}@2x?access_token=${mapboxToken}&logo=false`;
 
                             // Update meta tags for sharing preview
                             const metaTags = document.getElementsByTagName('meta');
