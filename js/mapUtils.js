@@ -1,11 +1,13 @@
 import { getChargers } from './api.js';
 import { getCurrentLocation, currentLocationCoords } from './location.js';
+import { CustomPopup } from './customPopup.js';
 
 let mapInstance = null;
 let mapReadyPromise = null;
 export let markers = [];
 export let currentLocationMarker = null;
 export let searchedLocationMarker = null;
+let currentPopup = null;
 
 class MapManager {
     constructor() {
@@ -369,49 +371,61 @@ export function addChargersToMap(chargers, center) {
                 const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
                 
                 // Create the popup HTML
-                const popup = new mapboxgl.Popup({maxWidth: '350px'})
-                    .setHTML(`
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; padding: 16px; background: #f0f4f8; border-radius: 8px;">
-                            <div style="border-bottom: 1px solid #e0e7f0; padding-bottom: 12px; margin-bottom: 16px;">
-                                <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #00355F;">${Title || 'Charger'}</h3>
-                                <p style="margin: 0; font-size: 13px; color: #5d6d7e;">${operatorName}</p>
-                            </div>
-                            
-                            <div style="margin-bottom: 16px;">
-                                <p style="margin: 0 0 10px 0; font-size: 13px;">
-                                    <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Address</span>
-                                    <span style="color: #00355F;">${address}</span>
-                                </p>
-                                <p style="margin: 0 0 10px 0; font-size: 13px;">
-                                    <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Status</span>
-                                    <span style="color: ${statusColor}; font-weight: 600;">${statusTitle}</span>
-                                </p>
-                                <p style="margin: 0 0 10px 0; font-size: 13px;">
-                                    <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Cost</span>
-                                    <span style="color: #00355F;">${usageCost}</span>
-                                </p>
-                                <p style="margin: 0; font-size: 12px; color: #5d6d7e;">
-                                    <i class="fas fa-clock" style="margin-right: 4px;"></i>Last updated: ${lastUpdated}
-                                </p>
-                            </div>
-
-                            <div style="background: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
-                                <p style="margin: 0 0 8px 0; font-size: 13px; color: #5d6d7e; font-weight: 500;">Connectors</p>
-                                ${connectorInfo}
-                            </div>
-
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" 
-                               target="_blank" 
-                               style="display: inline-block; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2);">
-                               <i class="fas fa-directions" style="margin-right: 6px;"></i>Get Directions
-                            </a>
+                const popupHTML = `
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; padding: 16px; background: #f0f4f8; border-radius: 8px;">
+                        <div style="border-bottom: 1px solid #e0e7f0; padding-bottom: 12px; margin-bottom: 16px;">
+                            <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #00355F;">${Title || 'Charger'}</h3>
+                            <p style="margin: 0; font-size: 13px; color: #5d6d7e;">${operatorName}</p>
                         </div>
-                    `);
-                
+                        
+                        <div style="margin-bottom: 16px;">
+                            <p style="margin: 0 0 10px 0; font-size: 13px;">
+                                <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Address</span>
+                                <span style="color: #00355F;">${address}</span>
+                            </p>
+                            <p style="margin: 0 0 10px 0; font-size: 13px;">
+                                <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Status</span>
+                                <span style="color: ${statusColor}; font-weight: 600;">${statusTitle}</span>
+                            </p>
+                            <p style="margin: 0 0 10px 0; font-size: 13px;">
+                                <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Cost</span>
+                                <span style="color: #00355F;">${usageCost}</span>
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #5d6d7e;">
+                                <i class="fas fa-clock" style="margin-right: 4px;"></i>Last updated: ${lastUpdated}
+                            </p>
+                        </div>
+
+                        <div style="background: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
+                            <p style="margin: 0 0 8px 0; font-size: 13px; color: #5d6d7e; font-weight: 500;">Connectors</p>
+                            ${connectorInfo}
+                        </div>
+
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" 
+                           target="_blank" 
+                           style="display: inline-block; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2);">
+                           <i class="fas fa-directions" style="margin-right: 6px;"></i>Get Directions
+                        </a>
+                    </div>
+                `;
+
                 const marker = new mapboxgl.Marker({ color: markerColor })
                     .setLngLat([Longitude, Latitude])
-                    .setPopup(popup)
                     .addTo(map);
+
+                // Add click handler for the marker
+                marker.getElement().addEventListener('click', () => {
+                    // Close any existing popup
+                    if (currentPopup) {
+                        currentPopup.close();
+                    }
+
+                    // Create and show new popup
+                    currentPopup = new CustomPopup({ maxWidth: '350px' });
+                    currentPopup.setHTML(popupHTML);
+                    currentPopup.open();
+                });
+
                 markers.push(marker);
             } catch (error) {
                 console.error("Error adding marker for charger:", error, charger);
