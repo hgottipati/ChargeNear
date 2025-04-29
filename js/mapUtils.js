@@ -477,16 +477,17 @@ export function addChargersToMap(chargers, center) {
                                 // Force the menu to be visible for measurements
                                 menu.style.display = 'block';
                                 menu.style.visibility = 'hidden';
-                                menu.style.position = 'fixed'; // Change to fixed positioning
                                 menu.style.zIndex = '100000'; // Ensure highest z-index
-                                const menuHeight = menu.offsetHeight;
-                                const menuWidth = menu.offsetWidth;
                                 
                                 // Check if we're on mobile
                                 const isMobile = window.innerWidth <= 768;
                                 console.log('Is mobile:', isMobile);
                                 
                                 if (isMobile) {
+                                    menu.style.position = 'fixed'; // Fixed positioning for mobile
+                                    const menuHeight = menu.offsetHeight;
+                                    const menuWidth = menu.offsetWidth;
+                                    
                                     // Reset any previous positioning
                                     menu.style.top = '';
                                     menu.style.bottom = '';
@@ -520,12 +521,13 @@ export function addChargersToMap(chargers, center) {
                                     }
                                 } else {
                                     // Desktop positioning
-                                    menu.style.position = 'absolute';
+                                    menu.style.position = 'absolute'; // Absolute positioning for desktop
+                                    menu.style.width = 'auto';
                                     menu.style.top = '0';
                                     menu.style.left = '100%';
                                     menu.style.marginLeft = '8px';
-                                    menu.style.width = 'auto';
                                     
+                                    const menuWidth = menu.offsetWidth;
                                     if (rect.right + menuWidth + 8 > viewportWidth) {
                                         menu.style.left = 'auto';
                                         menu.style.right = '100%';
