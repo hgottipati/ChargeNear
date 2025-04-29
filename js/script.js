@@ -8,6 +8,7 @@ async function init() {
     console.log("Initializing application...");
     const urlParams = new URLSearchParams(window.location.search);
     const defaultAddress = urlParams.get('address');
+    const sharedChargerId = urlParams.get('chargerId');
     const fastOnly = urlParams.get('fastOnly') === 'true' || document.getElementById("fastOnly").checked;
 
     document.getElementById("fastOnly").checked = fastOnly;
@@ -19,43 +20,103 @@ async function init() {
     const modal = document.getElementById("location-error-modal");
     const messageElement = document.getElementById("location-error-message");
     
-    // Flag to track if geolocation succeeded
-    let geolocationSucceeded = false;
-    let userLat, userLon;
+    let initialLat, initialLon;
 
     try {
         if (loading) loading.style.display = "block";
-        console.log("Requesting user location...");
-        
-        try {
-            const { lat, lon } = await getCurrentLocation();
-            userLat = lat;
-            userLon = lon;
-            currentLocationCoords.lat = lat;
-            currentLocationCoords.lon = lon;
-            geolocationSucceeded = true;
-            console.log("Geolocation succeeded:", { lat, lon });
-        } catch (geoError) {
-            console.error("Geolocation error:", geoError);
-            // Will be handled in the main catch block
-            throw geoError;
+
+        // If we have a shared charger ID, get its location first
+        if (sharedChargerId) {
+            console.log("Loading shared charger:", sharedChargerId);
+            const filters = {
+                fastOnly: false,
+                level2Only: false,
+                teslaSupercharger: false,
+                teslaDestination: false,
+                chargepointOnly: false,
+                electrifyAmerica: false,
+                evgo: false,
+                blink: false,
+                operationalOnly: false
+            };
+            
+            const chargers = await getChargers(47.6062, -122.3321, filters);
+            const targetCharger = chargers.find(c => c.ID === sharedChargerId);
+            
+            if (targetCharger) {
+                initialLat = targetCharger.AddressInfo.Latitude;
+                initialLon = targetCharger.AddressInfo.Longitude;
+            }
         }
-        
-        await initMap(userLat, userLon);
+
+        // If no shared charger or charger not found, try user's location
+        if (!initialLat || !initialLon) {
+            try {
+                console.log("Requesting user location...");
+                const { lat, lon } = await getCurrentLocation();
+                initialLat = lat;
+                initialLon = lon;
+                currentLocationCoords.lat = lat;
+                currentLocationCoords.lon = lon;
+                console.log("Geolocation succeeded:", { lat, lon });
+            } catch (geoError) {
+                console.error("Geolocation error:", geoError);
+                // Use default location
+                initialLat = 47.6062;
+                initialLon = -122.3321;
+                throw geoError;
+            }
+        }
+
+        // Initialize map with our coordinates
+        await initMap(initialLat, initialLon);
         console.log("Map initialized successfully");
 
-        // Add a marker to confirm the map is working
-        console.log("Adding marker...");
-        addCurrentLocationMarker(userLat, userLon);
-        const chargers = await getChargers(userLat, userLon, fastOnly);
-        addChargersToMap(chargers, [userLon, userLat]);
+        // If we have a shared charger, show it
+        if (sharedChargerId) {
+            const filters = {
+                fastOnly: false,
+                level2Only: false,
+                teslaSupercharger: false,
+                teslaDestination: false,
+                chargepointOnly: false,
+                electrifyAmerica: false,
+                evgo: false,
+                blink: false,
+                operationalOnly: false
+            };
+            
+            const chargers = await getChargers(initialLat, initialLon, filters);
+            const targetCharger = chargers.find(c => c.ID === sharedChargerId);
+            
+            if (targetCharger) {
+                addChargersToMap([targetCharger], [initialLon, initialLat]);
+                
+                // Trigger click on the marker to show details
+                setTimeout(() => {
+                    const marker = window.markers.find(m => m.chargerId === sharedChargerId);
+                    if (marker) {
+                        marker.getElement().click();
+                    }
+                }, 1000);
+            }
+        } else {
+            // Normal flow - show all chargers
+            const chargers = await getChargers(initialLat, initialLon, fastOnly);
+            addChargersToMap(chargers, [initialLon, initialLat]);
+            if (currentLocationCoords.lat && currentLocationCoords.lon) {
+                addCurrentLocationMarker(currentLocationCoords.lat, currentLocationCoords.lon);
+            }
+        }
+
         document.getElementById("address").value = "";
         document.body.setAttribute('data-map-ready', 'true');
+
     } catch (error) {
-        console.log("Error during initialization:", error);
+        console.error("Error during initialization:", error);
         
         // Only show location error modal if geolocation actually failed
-        if (!geolocationSucceeded) {
+        if (!initialLat || !initialLon) {
             let userMessage = "Couldn't get your location.";
             if (error.code === 1) {
                 userMessage = "Location access denied. Please enable location permissions in your browser settings.";
