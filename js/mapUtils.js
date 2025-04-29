@@ -415,7 +415,7 @@ export function addChargersToMap(chargers, center) {
                                         style="width: 100%; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer;">
                                     <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
                                 </button>
-                                <div class="share-menu" style="display: none; position: absolute; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000; overflow: hidden; min-width: 200px;">
+                                <div class="share-menu" style="display: none; position: absolute; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100000; overflow: hidden; min-width: 200px;">
                                     <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'copy')" 
                                             style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
                                         <i class="fas fa-link" style="width: 20px; color: #00355F;"></i> Copy Link
@@ -478,6 +478,7 @@ export function addChargersToMap(chargers, center) {
                                 menu.style.display = 'block';
                                 menu.style.visibility = 'hidden';
                                 menu.style.position = 'fixed'; // Change to fixed positioning
+                                menu.style.zIndex = '100000'; // Ensure highest z-index
                                 const menuHeight = menu.offsetHeight;
                                 const menuWidth = menu.offsetWidth;
                                 
