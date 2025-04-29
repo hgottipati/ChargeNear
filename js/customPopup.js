@@ -98,8 +98,8 @@ export class CustomPopup {
             const deltaY = currentY - startY;
             
             if (deltaY > 0) { // Only allow dragging down
-                this.container.style.transform = `translateY(${deltaY}px)`;
                 e.preventDefault();
+                this.container.style.transform = `translateY(${deltaY}px)`;
             }
         });
 
@@ -111,7 +111,7 @@ export class CustomPopup {
             if (deltaY > 100) { // If dragged down more than 100px, close
                 this.close();
             } else {
-                this.container.style.transform = 'none';
+                this.container.style.transform = 'translateY(0)';
             }
         });
     }
@@ -135,7 +135,8 @@ export class CustomPopup {
         if (this.isMobile) {
             this.container.style.cssText = `
                 ${baseStyles}
-                bottom: -100%;
+                position: fixed;
+                bottom: 0;
                 left: 0;
                 right: 0;
                 width: 100%;
@@ -143,6 +144,7 @@ export class CustomPopup {
                 max-height: 90vh;
                 transform: translateY(100%);
                 will-change: transform;
+                background: white;
             `;
             
             // Show overlay on mobile
@@ -282,9 +284,13 @@ export class CustomPopup {
             this.overlay.style.display = 'block';
             // Force reflow
             this.container.offsetHeight;
-            this.container.style.transform = 'translateY(0)';
-            this.overlay.style.opacity = '1';
-            this.overlay.style.pointerEvents = 'auto';
+            this.overlay.offsetHeight;
+            
+            requestAnimationFrame(() => {
+                this.container.style.transform = 'translateY(0)';
+                this.overlay.style.opacity = '1';
+                this.overlay.style.pointerEvents = 'auto';
+            });
         } else {
             this.container.style.left = '0';
         }
