@@ -144,6 +144,9 @@ export async function getMap() {
     }
 }
 
+// Make getMap available globally
+window.getMap = getMap;
+
 // Export the initMap function
 export async function initMap(lat, lon) {
     try {
@@ -372,13 +375,13 @@ export function addChargersToMap(chargers, center) {
                 
                 // Create the popup HTML
                 const popupHTML = `
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; padding: 16px; background: #f0f4f8; border-radius: 8px;">
-                        <div style="border-bottom: 1px solid #e0e7f0; padding-bottom: 12px; margin-bottom: 16px;">
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; padding: 16px; background: #f0f4f8; border-radius: 8px; display: flex; flex-direction: column; gap: 16px;">
+                        <div style="border-bottom: 1px solid #e0e7f0; padding-bottom: 12px;">
                             <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #00355F;">${Title || 'Charger'}</h3>
                             <p style="margin: 0; font-size: 13px; color: #5d6d7e;">${operatorName}</p>
                         </div>
                         
-                        <div style="margin-bottom: 16px;">
+                        <div>
                             <p style="margin: 0 0 10px 0; font-size: 13px;">
                                 <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Address</span>
                                 <span style="color: #00355F;">${address}</span>
@@ -396,7 +399,7 @@ export function addChargersToMap(chargers, center) {
                             </p>
                         </div>
 
-                        <div style="background: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
+                        <div style="background: #ffffff; border-radius: 6px; padding: 12px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
                             <p style="margin: 0 0 8px 0; font-size: 13px; color: #5d6d7e; font-weight: 500;">Connectors</p>
                             ${connectorInfo}
                         </div>
