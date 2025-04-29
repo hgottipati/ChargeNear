@@ -415,7 +415,7 @@ export function addChargersToMap(chargers, center) {
                                         style="width: 100%; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer; position: relative;">
                                     <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
                                 </button>
-                                <div class="share-menu" style="display: none; position: fixed; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000000; overflow: hidden; min-width: 200px;">
+                                <div class="share-menu" style="display: none; position: absolute; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000000; overflow: hidden; min-width: 200px;">
                                     <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'copy')" 
                                             style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
                                         <i class="fas fa-link" style="width: 20px; color: #00355F;"></i> Copy Link
@@ -477,67 +477,57 @@ export function addChargersToMap(chargers, center) {
                                 // Force the menu to be visible for measurements
                                 menu.style.display = 'block';
                                 menu.style.visibility = 'hidden';
-                                menu.style.zIndex = '1000000'; // Even higher z-index
+                                menu.style.zIndex = '1000000'; // Ensure highest z-index
                                 
                                 // Check if we're on mobile
                                 const isMobile = window.innerWidth <= 768;
                                 console.log('Is mobile:', isMobile);
                                 
+                                // Reset any previous positioning
+                                menu.style.top = '';
+                                menu.style.bottom = '';
+                                menu.style.left = '';
+                                menu.style.right = '';
+                                menu.style.marginTop = '';
+                                menu.style.marginBottom = '';
+                                menu.style.marginLeft = '';
+                                menu.style.marginRight = '';
+                                menu.style.transform = '';
+                                
+                                const menuHeight = menu.offsetHeight;
+                                const menuWidth = menu.offsetWidth;
+                                
                                 if (isMobile) {
                                     // Mobile positioning
-                                    const menuHeight = menu.offsetHeight;
-                                    const menuWidth = menu.offsetWidth;
+                                    menu.style.position = 'absolute';
+                                    menu.style.width = '100%';
                                     
-                                    // Reset any previous positioning
-                                    menu.style.top = '';
-                                    menu.style.bottom = '';
-                                    menu.style.left = '';
-                                    menu.style.right = '';
-                                    menu.style.marginTop = '';
-                                    menu.style.marginBottom = '';
-                                    menu.style.marginLeft = '';
-                                    menu.style.marginRight = '';
+                                    // Position above by default
+                                    menu.style.bottom = '100%';
+                                    menu.style.left = '0';
+                                    menu.style.marginBottom = '8px';
                                     
-                                    // Calculate available space above and below
-                                    const spaceAbove = rect.top;
-                                    const spaceBelow = viewportHeight - (rect.bottom);
-                                    
-                                    if (spaceBelow >= menuHeight + 10 || spaceBelow > spaceAbove) {
-                                        // Position below the button
-                                        menu.style.top = `${rect.bottom + 10}px`;
-                                        menu.style.left = `${Math.max(10, rect.left)}px`;
-                                        menu.style.width = `${Math.min(menuWidth, viewportWidth - 20)}px`;
-                                    } else {
-                                        // Position above the button
-                                        menu.style.bottom = `${viewportHeight - rect.top + 10}px`;
-                                        menu.style.left = `${Math.max(10, rect.left)}px`;
-                                        menu.style.width = `${Math.min(menuWidth, viewportWidth - 20)}px`;
-                                    }
-                                    
-                                    // Ensure menu doesn't go off screen
-                                    const menuRect = menu.getBoundingClientRect();
-                                    if (menuRect.right > viewportWidth - 10) {
-                                        menu.style.left = `${viewportWidth - menuWidth - 10}px`;
+                                    // If not enough space above, position below
+                                    if (rect.top < menuHeight + 10) {
+                                        menu.style.bottom = 'auto';
+                                        menu.style.top = '100%';
+                                        menu.style.marginBottom = '0';
+                                        menu.style.marginTop = '8px';
                                     }
                                 } else {
                                     // Desktop positioning
-                                    const menuWidth = menu.offsetWidth;
-                                    const menuHeight = menu.offsetHeight;
-                                    
-                                    // Position relative to viewport but aligned with button
-                                    menu.style.position = 'fixed';
-                                    menu.style.top = `${rect.top}px`;
-                                    menu.style.left = `${rect.right + 8}px`; // 8px gap from button
+                                    menu.style.position = 'absolute';
                                     menu.style.width = 'auto';
+                                    menu.style.top = '0';
+                                    menu.style.left = '100%';
+                                    menu.style.marginLeft = '8px';
                                     
-                                    // Check if menu would go off right edge
+                                    // If would go off right edge, position to the left
                                     if (rect.right + menuWidth + 8 > viewportWidth) {
-                                        menu.style.left = `${rect.left - menuWidth - 8}px`; // Position to left of button
-                                    }
-                                    
-                                    // Check if menu would go off bottom edge
-                                    if (rect.top + menuHeight > viewportHeight) {
-                                        menu.style.top = `${viewportHeight - menuHeight - 10}px`;
+                                        menu.style.left = 'auto';
+                                        menu.style.right = '100%';
+                                        menu.style.marginLeft = '0';
+                                        menu.style.marginRight = '8px';
                                     }
                                 }
                                 
