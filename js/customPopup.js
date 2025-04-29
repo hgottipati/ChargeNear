@@ -14,31 +14,7 @@ export class CustomPopup {
         // Create the popup container
         this.container = document.createElement('div');
         this.container.className = 'custom-popup';
-        this.container.style.cssText = `
-            position: fixed;
-            background: #f0f4f8;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            transition: all 0.3s ease;
-            max-width: ${this.options.maxWidth};
-            width: 100%;
-            ${this.isMobile ? `
-                bottom: -100%;
-                left: 0;
-                right: 0;
-                border-radius: 16px 16px 0 0;
-                max-height: 80vh;
-                overflow-y: auto;
-            ` : `
-                top: 50%;
-                left: -100%;
-                transform: translateY(-50%);
-                max-height: 90vh;
-                overflow-y: auto;
-                margin-left: 20px;
-            `}
-        `;
+        // Initial style will be set in applyStyle()
 
         // Add close button
         const closeButton = document.createElement('button');
@@ -92,12 +68,40 @@ export class CustomPopup {
         window.addEventListener('resize', () => {
             const wasMobile = this.isMobile;
             this.isMobile = window.innerWidth <= 768;
-            
             if (wasMobile !== this.isMobile && this.isOpen) {
                 this.close();
                 this.open();
             }
         });
+    }
+
+    applyStyle() {
+        this.isMobile = window.innerWidth <= 768;
+        this.container.style.cssText = `
+            position: fixed;
+            background: #f0f4f8;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            max-width: ${this.options.maxWidth};
+            width: 100%;
+            ${this.isMobile ? `
+                bottom: -100%;
+                left: 0;
+                right: 0;
+                border-radius: 16px 16px 0 0;
+                max-height: 80vh;
+                overflow-y: auto;
+            ` : `
+                top: 50%;
+                left: -100%;
+                transform: translateY(-50%);
+                max-height: 90vh;
+                overflow-y: auto;
+                margin-left: 20px;
+            `}
+        `;
     }
 
     setHTML(html) {
@@ -112,20 +116,17 @@ export class CustomPopup {
         if (!this.container) {
             this.create();
         }
-        
+        this.applyStyle(); // Always apply the correct style
         this.isOpen = true;
         this.container.style.display = 'block';
         this.overlay.style.display = 'block';
-        
         // Trigger reflow
         this.container.offsetHeight;
-        
         if (this.isMobile) {
             this.container.style.bottom = '0';
         } else {
             this.container.style.left = '0';
         }
-        
         this.overlay.style.opacity = '1';
         this.overlay.style.pointerEvents = 'auto';
     }
