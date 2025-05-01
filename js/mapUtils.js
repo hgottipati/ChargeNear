@@ -401,39 +401,15 @@ export function addChargersToMap(chargers, center) {
 
                         <div style="background: #ffffff; border-radius: 6px; padding: 12px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
                             <p style="margin: 0 0 8px 0; font-size: 13px; color: #5d6d7e; font-weight: 500;">Connectors</p>
-                            ${connectorInfo}
+                            
                         </div>
 
-                        <div style="display: flex; gap: 10px;">
+                        <div style="display: flex; justify-content: center;">
                             <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" 
                                target="_blank" 
-                               style="flex: 1; display: inline-flex; align-items: center; justify-content: center; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2);">
+                               style="display: inline-flex; align-items: center; justify-content: center; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2); width: 200px;">
                                <i class="fas fa-directions" style="margin-right: 6px;"></i>Get Directions
                             </a>
-                            <div style="position: relative; flex: 1;">
-                                <button onclick="toggleShareMenu(this)" 
-                                        style="width: 100%; display: inline-flex; align-items: center; justify-content: center; background: #00355F; color: #EEC218; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,53,95,0.2); cursor: pointer; position: relative;">
-                                    <i class="fas fa-share-alt" style="margin-right: 6px;"></i>Share
-                                </button>
-                                <div class="share-menu" style="display: none; position: absolute; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000000; overflow: hidden; min-width: 200px;">
-                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'copy')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
-                                        <i class="fas fa-link" style="width: 20px; color: #00355F;"></i> Copy Link
-                                    </button>
-                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'twitter')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
-                                        <i class="fab fa-twitter" style="width: 20px; color: #1DA1F2;"></i> Share on Twitter
-                                    </button>
-                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'facebook')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s; border-bottom: 1px solid #eee;">
-                                        <i class="fab fa-facebook" style="width: 20px; color: #4267B2;"></i> Share on Facebook
-                                    </button>
-                                    <button onclick="shareCharger('${Title}', ${Latitude}, ${Longitude}, 'whatsapp')" 
-                                            style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #333; font-size: 14px; transition: background-color 0.2s;">
-                                        <i class="fab fa-whatsapp" style="width: 20px; color: #25D366;"></i> Share on WhatsApp
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 `;
