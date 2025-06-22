@@ -2,28 +2,6 @@ import { getChargers, getAddressSuggestions } from './api.js';
 import { currentLocationCoords, getCurrentLocation } from './location.js';
 import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker } from './mapUtils.js';
 
-export async function locateUser() {
-    console.log("Locating user...");
-    const loading = document.getElementById("loading");
-    if (loading) loading.style.display = "block";
-
-    try {
-        const coords = await getCurrentLocation();
-        currentLocationCoords.lat = coords.lat;
-        currentLocationCoords.lon = coords.lon;
-
-        const map = await getMap();
-        map.jumpTo({ center: [coords.lon, coords.lat], zoom: 14 });
-
-        addCurrentLocationMarker(coords.lat, coords.lon);
-    } catch (error) {
-        console.error("Failed to locate user:", error.userMessage || error.message);
-        alert(error.userMessage || "Could not get your location.");
-    } finally {
-        if (loading) loading.style.display = "none";
-    }
-}
-
 export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
     const addressInput = document.getElementById("address");
     const distanceSelect = document.getElementById("distance");

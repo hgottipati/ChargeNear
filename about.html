@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About ChargeNear</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            background-image:
+                linear-gradient(rgba(0, 53, 95, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 53, 95, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            transition: background-color 0.3s;
+        }
+        .header {
+            background-color: #00355F;
+            padding: 0.75rem 1rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: bold;
+            color: #EEC218;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .header a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+        .container {
+            max-w-4xl;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00355F;
+            margin-top: 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #EEC218;
+        }
+        p {
+            line-height: 1.6;
+            color: #4b5563;
+        }
+        .contributors-list a, .repo-link a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .contributors-list a:hover, .repo-link a:hover {
+            text-decoration: underline;
+        }
+        .visits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            text-align: center;
+        }
+        .visit-item {
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+        .visit-item .flag {
+            font-size: 3rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><a href="/">ChargeNear</a></h1>
+        <nav>
+            <a href="/" aria-label="Open Map"><i class="fa-solid fa-bars"></i></a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="text-center mb-12" style="margin-bottom: 3rem;">
+            <h1 style="font-size: 3rem; font-weight: 800; color: #111827;">About ChargeNear</h1>
+            <p style="font-size: 1.25rem; color: #4b5563;">Making EV charging simple and accessible for everyone.</p>
+        </div>
+
+        <div class="card">
+            <h2>Our Mission</h2>
+            <p>
+              ChargeNear is a project born out of the desire to accelerate the transition to sustainable transportation. Our goal is to provide a comprehensive and user-friendly platform for electric vehicle (EV) drivers to find charging stations, plan their routes, and connect with a community of fellow EV enthusiasts. We believe that by making charging infrastructure more visible and accessible, we can help overcome one of the main barriers to EV adoption.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>About the Creator</h2>
+            <p>
+              Hi, I'm Hareesh Gottipati, the creator of ChargeNear. As a Data Engineer with over 10 years of experience, I specialize in building scalable, high-performance data solutions with SQL, Python, and AWS. I'm passionate about automation, cloud infrastructure, and using AI to create efficient, data-driven workflows.
+            </p>
+            <p>
+              I developed ChargeNear as an open-source tool to help hotels and Airbnb hosts offer their guests an easy way to find nearby EV chargers, blending my technical expertise with my interest in sustainable technology.
+            </p>
+            <p class="repo-link">
+              Let's connect! You can find me on <a href="https://www.linkedin.com/in/hareesh-gottipati/" target="_blank" rel="noopener noreferrer">LinkedIn</a> or view my other projects on <a href="https://github.com/hgottipati" target="_blank" rel="noopener noreferrer">GitHub</a>.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>Open Source & Contributions</h2>
+            <p>
+              ChargeNear is an open-source project, and we welcome contributions from the community. Whether you're a developer, a designer, or an EV enthusiast, there are many ways to get involved. Check out our GitHub repository to see how you can help.
+            </p>
+            <p class="repo-link">
+              <a href="https://github.com/hgottipati/ChargeNear" target="_blank" rel="noopener noreferrer">
+                ChargeNear on GitHub
+              </a>
+            </p>
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-top: 2rem;">Our Contributors</h3>
+            <ul class="contributors-list">
+              <li><a href="https://github.com/hgottipati" target="_blank" rel="noopener noreferrer">Hareesh Gottipati</a></li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Global Visits</h2>
+            <p>We're proud to have a global community of users!</p>
+            <div class="visits-grid">
+                <div class="visit-item">
+                    <div class="flag">🇺🇸</div>
+                    <p>United States</p>
+                    <p>1,200 visits</p>
+                </div>
+                <div class="visit-item">
+                    <div class="flag">🇩🇪</div>
+                    <p>Germany</p>
+                    <p>800 visits</p>
+                </div>
+                <div class="visit-item">
+                    <div class="flag">🇮🇳</div>
+                    <p>India</p>
+                    <p>1,500 visits</p>
+                </div>
+                <div class="visit-item">
+                    <div class="flag">🇯🇵</div>
+                    <p>Japan</p>
+                    <p>500 visits</p>
+                </div>
+                <div class="visit-item">
+                    <div class="flag">🇧🇷</div>
+                    <p>Brazil</p>
+                    <p>700 visits</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html> 

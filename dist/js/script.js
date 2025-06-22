@@ -1,7 +1,7 @@
 // script.js
 import { initMap, addCurrentLocationMarker, addSearchedLocationMarker, addChargersToMap } from './mapUtils.js';
 import { getCurrentLocation, showChargers, currentLocationCoords } from './location.js';
-import { setupUI, locateUser } from './ui.js';
+import { setupUI } from './ui.js';
 import { getChargers } from './api.js';
 
 async function init() {
@@ -189,8 +189,6 @@ async function init() {
 window.showChargers = function() {
     return showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker);
 };
-
-window.locateUser = locateUser;
 
 // Function to handle shared charger URLs
 async function handleSharedCharger() {
