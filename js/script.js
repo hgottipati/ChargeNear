@@ -185,6 +185,15 @@ async function init() {
     }
 }
 
+// Function to update header height CSS variable
+function updateHeaderHeight() {
+    const header = document.querySelector('.header');
+    if (header) {
+        const headerHeight = header.offsetHeight;
+        document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+    }
+}
+
 // Expose showChargers globally so it can be called from index.html
 window.showChargers = function() {
     return showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker);
@@ -247,8 +256,12 @@ async function handleSharedCharger() {
 
 // Call the function when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    updateHeaderHeight();
     handleSharedCharger();
 });
+
+// Update header height on resize
+window.addEventListener('resize', updateHeaderHeight);
 
 // Start the app
 init();
