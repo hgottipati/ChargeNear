@@ -1,0 +1,137 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+:root {
+    --header-height: 71px;
+}
+
+body { 
+    margin: 0; 
+    padding: 0; 
+    font-family: Arial, sans-serif; 
+    overflow: hidden; /* Prevent page scrolling */
+    height: 100vh; /* Ensure body takes full viewport height */
+}
+
+.header {
+    position: fixed; /* Fix header at the top */
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #00355F;
+    padding: 0.75rem;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.header-content h1 {
+    margin: 0;
+    font-size: 1.625rem;
+    font-weight: bold;
+    color: #EEC218;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    flex: 1;
+    text-align: left;
+}
+
+.header-content nav {
+    flex-grow: 1;
+    text-align: right;
+}
+
+.header-content nav a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 2;
+}
+
+.search-container input[type="text"] {
+    padding: 5px;
+    font-size: 14px;
+    width: 100%;
+    max-width: 300px;
+    border: none;
+    border-radius: 3px;
+}
+
+.search-container input[type="text"]::placeholder {
+    color: #d3d3d3; /* Light gray */
+    opacity: 1; /* Ensure full opacity for visibility */
+}
+
+.search-container button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #EEC218;
+    color: #00355F;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#map { 
+    position: fixed; /* Fix map position */
+    top: var(--header-height); 
+    bottom: 0; 
+    width: 100%; 
+    height: calc(100vh - var(--header-height));
+    display: block;
+    z-index: 1; /* Ensure map is below header and controls */
+}
