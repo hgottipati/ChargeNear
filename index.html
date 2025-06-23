@@ -187,9 +187,11 @@
             .search-container {
                 flex: 1 1 auto;
                 min-width: 120px;
+                max-width: calc(100% - 200px);
             }
             .header-content nav {
                 flex: 0 0 auto;
+                margin-left: auto;
             }
             .search-container input[type="text"] {
                 max-width: 100%;
@@ -219,7 +221,12 @@
             .header-content h1 {
                 font-size: 1rem;
             }
-
+            .search-container {
+                max-width: calc(100% - 150px);
+            }
+            .header-content nav {
+                margin-left: auto;
+            }
             .search-container input[type="text"] {
                 font-size: 16px;
                 padding: 4px;
