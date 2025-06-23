@@ -586,7 +586,7 @@
     </style>
 </head>
 <body>
-    <div class="header">
+    <div class="header" id="header">
         <div class="header-content">
             <h1><a href="/" style="color: inherit; text-decoration: none;">ChargeNear</a></h1>
             <div class="search-container">
@@ -713,8 +713,10 @@
         // Dynamically calculate header height and update CSS variable
         function updateHeaderHeight() {
             const header = document.getElementById('header');
-            const headerHeight = header.offsetHeight;
-            document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+            if (header) {
+                const headerHeight = header.offsetHeight;
+                document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+            }
         }
 
         window.addEventListener('load', updateHeaderHeight);
