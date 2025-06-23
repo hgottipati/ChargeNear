@@ -54,6 +54,9 @@
             padding: 0.75rem;
             z-index: 1000;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .header-content {
@@ -61,7 +64,7 @@
             margin: 0 auto;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            flex: 1 1 auto;
             gap: 10px;
         }
 
@@ -75,12 +78,15 @@
             text-align: left;
         }
 
-        .header-content nav {
+        nav {
             flex: 0 0 auto;
+        }
+
+        .header nav {
             text-align: right;
         }
 
-        .header-content nav a {
+        .header nav a {
             color: #fff;
             text-decoration: none;
             font-size: 1.5rem;
@@ -604,10 +610,10 @@
                     <i class="fa-solid fa-location-crosshairs"></i>
                 </button>
             </div>
-            <nav>
-                <a href="/about.html" aria-label="About Page"><i class="fa-solid fa-bars"></i></a>
-            </nav>
         </div>
+        <nav>
+            <a href="/about.html" aria-label="About Page"><i class="fa-solid fa-bars"></i></a>
+        </nav>
     </div>
     <div id="controls">
         <button id="filter-button" class="filter-button" title="Show Filters">
