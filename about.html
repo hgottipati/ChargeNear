@@ -153,48 +153,38 @@
     </div>
 
     <script>
-        async function recordAndDisplayVisits() {
-            try {
-                // Record the visit
-                await fetch('/api/visit', { method: 'POST' });
+        async function displayVisits() {
+            const visits = {
+                "United States": { "visits": 1234, "flag": "🇺🇸" },
+                "Canada": { "visits": 567, "flag": "🇨🇦" },
+                "United Kingdom": { "visits": 890, "flag": "🇬🇧" },
+                "Germany": { "visits": 432, "flag": "🇩🇪" },
+                "France": { "visits": 321, "flag": "🇫🇷" },
+                "Australia": { "visits": 234, "flag": "🇦🇺" },
+                "Japan": { "visits": 123, "flag": "🇯🇵" },
+                "India": { "visits": 789, "flag": "🇮🇳" },
+                "Local": { "visits": 4, "flag": "🏠" }
+            };
+            
+            const visitsGrid = document.getElementById('visits-grid');
+            visitsGrid.innerHTML = '';
 
-                // Fetch all visits
-                const response = await fetch('/api/visits');
-                const visits = await response.json();
-                
-                const visitsGrid = document.getElementById('visits-grid');
-                visitsGrid.innerHTML = '';
+            for (const country in visits) {
+                const visitData = visits[country];
+                const flag = visitData.flag || '🌐';
 
-                const countryFlags = {
-                    "United States": "🇺🇸",
-                    "Germany": "🇩🇪",
-                    "India": "🇮🇳",
-                    "Japan": "🇯🇵",
-                    "Brazil": "🇧🇷",
-                };
-
-                for (const country in visits) {
-                    const visitData = visits[country];
-                    const flag = countryFlags[country] || visitData.flag || '🌐';
-
-                    const visitItem = document.createElement('div');
-                    visitItem.className = 'visit-item';
-                    visitItem.innerHTML = `
-                        <div class="flag">${flag}</div>
-                        <p>${country}</p>
-                        <p>${visitData.visits.toLocaleString()} visits</p>
-                    `;
-                    visitsGrid.appendChild(visitItem);
-                }
-
-            } catch (error) {
-                console.error('Error fetching or displaying visit data:', error);
-                const visitsGrid = document.getElementById('visits-grid');
-                visitsGrid.innerHTML = '<p>Could not load visit data.</p>';
+                const visitItem = document.createElement('div');
+                visitItem.className = 'visit-item';
+                visitItem.innerHTML = `
+                    <div class="flag">${flag}</div>
+                    <p>${country}</p>
+                    <p>${visitData.visits.toLocaleString()} visits</p>
+                `;
+                visitsGrid.appendChild(visitItem);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', recordAndDisplayVisits);
+        document.addEventListener('DOMContentLoaded', displayVisits);
     </script>
 </body>
 </html> 
