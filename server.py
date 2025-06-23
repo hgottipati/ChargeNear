@@ -24,12 +24,12 @@ def get_country_from_ip(ip_address):
 def load_visits():
     if not os.path.exists(DATA_FILE):
         return {}
-    with open(DATA_FILE, 'r') as f:
+    with open(DATA_FILE, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def save_visits(data):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
+    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 @app.route('/api/visits')
 def get_visits():
