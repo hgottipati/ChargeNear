@@ -8,6 +8,8 @@ export let markers = [];
 export let currentLocationMarker = null;
 export let searchedLocationMarker = null;
 let currentPopup = null;
+let nearbyCircle = null;
+let nearbyCircleSource = null;
 
 class MapManager {
     constructor() {
@@ -72,6 +74,13 @@ class MapManager {
                     // Re-add searched location marker if it exists
                     if (searchedLocationMarker) {
                         searchedLocationMarker.addTo(this.map);
+                    }
+                    
+                    // Re-add nearby circle if it exists
+                    const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
+                    if (selectedRadius && selectedRadius !== 'none') {
+                        const center = this.map.getCenter().toArray();
+                        updateNearbyCircle(center, selectedRadius);
                     }
                 } catch (error) {
                     console.error("Error reloading markers after style change:", error);
@@ -265,6 +274,131 @@ export function addSearchedLocationMarker(lat, lon, address) {
             .addTo(map);
     }).catch(error => {
         console.error("Error adding searched location marker:", error.message);
+    });
+}
+
+// Function to create a circle around a point
+function createCircle(center, radiusInMiles) {
+    const earthRadius = 3959; // Earth's radius in miles
+    const radiusInRadians = radiusInMiles / earthRadius;
+    
+    const points = [];
+    for (let i = 0; i <= 64; i++) {
+        const angle = (i / 64) * 2 * Math.PI;
+        const lat = center[1] + (radiusInRadians * Math.cos(angle));
+        const lng = center[0] + (radiusInRadians * Math.sin(angle) / Math.cos(center[1] * Math.PI / 180));
+        points.push([lng, lat]);
+    }
+    
+    return points;
+}
+
+// Function to add or update the nearby circle
+export function updateNearbyCircle(center, radiusType) {
+    if (!center || !center[0] || !center[1]) {
+        console.error("Invalid center coordinates for nearby circle:", center);
+        return;
+    }
+
+    // Remove existing circle if any
+    removeNearbyCircle();
+
+    // If no radius selected, don't draw anything
+    if (!radiusType || radiusType === 'none') {
+        return;
+    }
+
+    // Convert radius type to miles
+    let radiusInMiles;
+    switch (radiusType) {
+        case '5min':
+            radiusInMiles = 0.25; // ~5 min walk
+            break;
+        case '15min':
+            radiusInMiles = 0.75; // ~15 min walk
+            break;
+        case '1mile':
+            radiusInMiles = 1.0; // 1 mile
+            break;
+        default:
+            console.warn("Unknown radius type:", radiusType);
+            return;
+    }
+
+    getMap().then(map => {
+        if (!map) {
+            console.error("Map is not available");
+            return;
+        }
+
+        // Create circle coordinates
+        const circleCoordinates = createCircle(center, radiusInMiles);
+        
+        // Add circle source
+        nearbyCircleSource = {
+            type: 'Feature',
+            geometry: {
+                type: 'Polygon',
+                coordinates: [circleCoordinates]
+            },
+            properties: {}
+        };
+
+        // Add the circle layer
+        map.addSource('nearby-circle', {
+            type: 'geojson',
+            data: nearbyCircleSource
+        });
+
+        map.addLayer({
+            id: 'nearby-circle-fill',
+            type: 'fill',
+            source: 'nearby-circle',
+            paint: {
+                'fill-color': '#EEC218',
+                'fill-opacity': 0.2
+            }
+        });
+
+        map.addLayer({
+            id: 'nearby-circle-border',
+            type: 'line',
+            source: 'nearby-circle',
+            paint: {
+                'line-color': '#EEC218',
+                'line-width': 2,
+                'line-opacity': 0.6
+            }
+        });
+
+        console.log(`Added nearby circle with radius ${radiusInMiles} miles around [${center[0]}, ${center[1]}]`);
+    }).catch(error => {
+        console.error("Error adding nearby circle:", error.message);
+    });
+}
+
+// Function to remove the nearby circle
+export function removeNearbyCircle() {
+    getMap().then(map => {
+        if (!map) return;
+
+        // Remove layers if they exist
+        if (map.getLayer('nearby-circle-fill')) {
+            map.removeLayer('nearby-circle-fill');
+        }
+        if (map.getLayer('nearby-circle-border')) {
+            map.removeLayer('nearby-circle-border');
+        }
+
+        // Remove source if it exists
+        if (map.getSource('nearby-circle')) {
+            map.removeSource('nearby-circle');
+        }
+
+        nearbyCircleSource = null;
+        console.log("Removed nearby circle");
+    }).catch(error => {
+        console.error("Error removing nearby circle:", error.message);
     });
 }
 

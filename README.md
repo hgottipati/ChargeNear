@@ -22,6 +22,7 @@ An interactive, open-source map for hotels and Airbnb hosts to display nearby EV
   - Network Providers: Tesla Superchargers, Tesla Destination, ChargePoint, Electrify America, EVgo, Blink, Volta, Shell Recharge, EV Connect, and SemaConnect
   - Charger Status: Operational only
   - Power Output: High power (150kW+), Medium power (50-150kW), Low power (<50kW)
+  - **Chargers Nearby**: Display a transparent yellow circle showing walking distance options (5 min walk, 15 min walk, 1 mile) - perfect for property owners to showcase nearby charging options
 - Custom markers with color coding:
   - Green for operational chargers
   - Light orange for high-power chargers
@@ -32,6 +33,7 @@ An interactive, open-source map for hotels and Airbnb hosts to display nearby EV
 ## Why It's Useful
 Hotels and Airbnb hosts can embed this map on their websites to:
 - Showcase nearby public EV chargers, even if they don't have on-site charging.
+- Display walking distance circles to highlight convenient charging options within 5-15 minute walks.
 - Appeal to the growing number of EV drivers, boosting bookings.
 - Provide a free, interactive tool that enhances guest convenience.
 - Allow guests to filter chargers based on their specific needs (e.g., Tesla Superchargers, high-power chargers).

@@ -1,4 +1,4 @@
-import { getMap } from './mapUtils.js';
+import { getMap, updateNearbyCircle } from './mapUtils.js';
 import { getChargers } from './api.js';
 
 export let currentLocationCoords = { lat: null, lon: null };
@@ -104,6 +104,10 @@ export async function showChargers(addChargersToMap, addCurrentLocationMarker, a
             }
             const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
             addChargersToMap(chargers, [lon, lat]);
+            
+            // Update nearby radius circle
+            const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
+            updateNearbyCircle([lon, lat], selectedRadius);
         } else {
             if (typeof window.MAPBOX_TOKEN === 'undefined') {
                 console.error("Mapbox token is not defined");
@@ -128,6 +132,10 @@ export async function showChargers(addChargersToMap, addCurrentLocationMarker, a
                 addSearchedLocationMarker(lat, lon, address);
                 const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
                 addChargersToMap(chargers, [lon, lat]);
+                
+                // Update nearby radius circle
+                const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
+                updateNearbyCircle([lon, lat], selectedRadius);
             } catch (error) {
                 console.error("Error geocoding address:", error);
                 throw error;

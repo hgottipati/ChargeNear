@@ -1,6 +1,6 @@
 import { getChargers, getAddressSuggestions } from './api.js';
 import { currentLocationCoords, getCurrentLocation } from './location.js';
-import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker } from './mapUtils.js';
+import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
 
 export async function locateUser() {
     console.log("Locating user...");
@@ -62,12 +62,29 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
         });
         // Keep operational only checked by default
         document.getElementById("operationalOnly").checked = true;
+        
+        // Reset nearby radius to "No circle"
+        const nearbyNoneRadio = document.getElementById("nearbyNone");
+        if (nearbyNoneRadio) {
+            nearbyNoneRadio.checked = true;
+        }
+        
+        // Remove nearby circle
+        removeNearbyCircle();
     });
 
     // Apply filters
     applyFiltersButton.addEventListener("click", () => {
         filterModal.style.display = "none";
         updateChargers();
+    });
+
+    // Nearby radius change handlers
+    const nearbyRadiusInputs = document.querySelectorAll('input[name="nearbyRadius"]');
+    nearbyRadiusInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            updateNearbyRadius();
+        });
     });
 
     // Address input suggestions
@@ -99,6 +116,48 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
             showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker);
         }
     });
+
+    // Function to update nearby radius circle
+    const updateNearbyRadius = async () => {
+        const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
+        
+        try {
+            const map = await getMap();
+            let lat, lon;
+
+            if (currentLocationCoords.lat && currentLocationCoords.lon && (!addressInput.value || addressInput.value.toLowerCase() === "current location")) {
+                lat = currentLocationCoords.lat;
+                lon = currentLocationCoords.lon;
+            } else if (addressInput.value) {
+                try {
+                    if (typeof window.MAPBOX_TOKEN === 'undefined') {
+                        console.error("Mapbox token is not defined");
+                        throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
+                    }
+                    
+                    const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addressInput.value)}.json?access_token=${window.MAPBOX_TOKEN}`);
+                    const data = await response.json();
+                    console.log("Geocoding response:", data);
+                    
+                    if (!data.features || data.features.length === 0) {
+                        console.warn("No features found in geocoding response");
+                        [lon, lat] = map.getCenter().toArray();
+                    } else {
+                        [lon, lat] = data.features[0].center;
+                    }
+                } catch (error) {
+                    console.error("Error geocoding address:", error);
+                    [lon, lat] = map.getCenter().toArray();
+                }
+            } else {
+                [lon, lat] = map.getCenter().toArray();
+            }
+
+            updateNearbyCircle([lon, lat], selectedRadius);
+        } catch (error) {
+            console.error("Error updating nearby radius:", error.message);
+        }
+    };
 
     // Function to update chargers based on filter changes
     const updateChargers = async () => {
@@ -174,6 +233,9 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
                 lowPower
             });
             addChargersToMap(chargers, [lon, lat]);
+            
+            // Update nearby radius circle after updating chargers
+            updateNearbyRadius();
         } catch (error) {
             console.error("Error updating charger filters:", error.message);
             alert("Error updating map: " + error.message);

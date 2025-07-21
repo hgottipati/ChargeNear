@@ -452,8 +452,14 @@
         .filter-section .section-content label:hover {
             background: #EEC21822;
         }
-        .filter-section .section-content input[type="checkbox"] {
+        .filter-section .section-content input[type="checkbox"],
+        .filter-section .section-content input[type="radio"] {
             accent-color: #EEC218;
+        }
+        
+        /* Style for radio button labels in nearby section */
+        .filter-section .section-content input[type="radio"] + span {
+            margin-left: 8px;
         }
         .filter-section .section-content .operator-badge {
             display: inline-flex;
@@ -685,6 +691,18 @@
                         <label class="child-option"><input type="checkbox" class="power-child" id="highPower"> High power (150kW+)</label>
                         <label class="child-option"><input type="checkbox" class="power-child" id="mediumPower"> Medium power (50-150kW)</label>
                         <label class="child-option"><input type="checkbox" class="power-child" id="lowPower"> Low power (<50kW)</label>
+                    </div>
+                </div>
+                <div class="filter-section collapsed" id="section-nearby">
+                    <div class="section-header" onclick="toggleSection(event, 'section-nearby')">
+                        <span><i class="fas fa-circle"></i> Chargers Nearby</span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="section-content">
+                        <label class="child-option"><input type="radio" name="nearbyRadius" id="nearbyNone" value="none" checked> No circle</label>
+                        <label class="child-option"><input type="radio" name="nearbyRadius" id="nearby5min" value="5min"> Within 5 min walk (~0.25 miles)</label>
+                        <label class="child-option"><input type="radio" name="nearbyRadius" id="nearby15min" value="15min"> Within 15 min walk (~0.75 miles)</label>
+                        <label class="child-option"><input type="radio" name="nearbyRadius" id="nearby1mile" value="1mile"> Within 1 mile</label>
                     </div>
                 </div>
             </div>
