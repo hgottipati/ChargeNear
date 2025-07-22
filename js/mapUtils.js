@@ -295,6 +295,8 @@ function createCircle(center, radiusInMiles) {
 
 // Function to add or update the nearby circle
 export function updateNearbyCircle(center, radiusType) {
+    console.log('updateNearbyCircle called with center:', center, 'radiusType:', radiusType);
+    
     if (!center || !center[0] || !center[1]) {
         console.error("Invalid center coordinates for nearby circle:", center);
         return;
@@ -330,9 +332,12 @@ export function updateNearbyCircle(center, radiusType) {
             console.error("Map is not available");
             return;
         }
+        
+        console.log('Map is available, adding circle layers...');
 
         // Create circle coordinates
         const circleCoordinates = createCircle(center, radiusInMiles);
+        console.log('Circle coordinates created:', circleCoordinates.length, 'points');
         
         // Add circle source
         nearbyCircleSource = {
@@ -372,6 +377,7 @@ export function updateNearbyCircle(center, radiusType) {
         });
 
         console.log(`Added nearby circle with radius ${radiusInMiles} miles around [${center[0]}, ${center[1]}]`);
+        console.log('Circle source data:', nearbyCircleSource);
     }).catch(error => {
         console.error("Error adding nearby circle:", error.message);
     });

@@ -41,6 +41,18 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
     // Filter Modal Controls
     filterButton.addEventListener("click", () => {
         filterModal.style.display = "flex";
+        
+        // Set up nearby radius event listeners after modal is shown
+        setTimeout(() => {
+            const nearbyRadiusInputs = filterModal.querySelectorAll('input[name="nearbyRadius"]');
+            console.log('Found nearby radius inputs:', nearbyRadiusInputs.length);
+            nearbyRadiusInputs.forEach((input, index) => {
+                console.log(`Setting up listener for input ${index}:`, input.id, input.value);
+                // Remove any existing listeners to avoid duplicates
+                input.removeEventListener('change', handleNearbyRadiusChange);
+                input.addEventListener('change', handleNearbyRadiusChange);
+            });
+        }, 100);
     });
 
     closeButton.addEventListener("click", () => {
@@ -78,14 +90,12 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
         filterModal.style.display = "none";
         updateChargers();
     });
-
-    // Nearby radius change handlers
-    const nearbyRadiusInputs = document.querySelectorAll('input[name="nearbyRadius"]');
-    nearbyRadiusInputs.forEach(input => {
-        input.addEventListener('change', () => {
-            updateNearbyRadius();
-        });
-    });
+    
+    // Handler function for nearby radius changes
+    function handleNearbyRadiusChange(event) {
+        console.log('Nearby radius changed to:', event.target.value);
+        updateNearbyRadius();
+    }
 
     // Address input suggestions
     addressInput.addEventListener("input", async () => {
@@ -120,6 +130,7 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
     // Function to update nearby radius circle
     const updateNearbyRadius = async () => {
         const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
+        console.log('updateNearbyRadius called with selectedRadius:', selectedRadius);
         
         try {
             const map = await getMap();
