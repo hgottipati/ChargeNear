@@ -1,4 +1,6 @@
 // script.js
+console.log('script.js module loaded');
+
 import { initMap, addCurrentLocationMarker, addSearchedLocationMarker, addChargersToMap } from './mapUtils.js';
 import { getCurrentLocation, showChargers, currentLocationCoords } from './location.js';
 import { setupUI, locateUser } from './ui.js';
@@ -14,7 +16,9 @@ async function init() {
     document.getElementById("fastOnly").checked = fastOnly;
 
     // Pass only the needed functions to setupUI
+    console.log("Calling setupUI...");
     setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker);
+    console.log("setupUI called successfully");
 
     const loading = document.getElementById("loading");
     const modal = document.getElementById("location-error-modal");

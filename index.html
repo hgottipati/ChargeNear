@@ -599,11 +599,26 @@
                 height: 44px !important;
             }
 
-            .filter-button svg {
-                width: 1.4em;
-                height: 1.4em;
-            }
+                    .filter-button svg {
+            width: 1.4em;
+            height: 1.4em;
         }
+    }
+    
+    /* Walking time marker styles */
+    .walking-time-marker {
+        background: #3d9be9 !important;
+        color: white !important;
+        padding: 4px 8px !important;
+        border-radius: 12px !important;
+        font-size: 12px !important;
+        font-weight: bold !important;
+        border: 2px solid white !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+        white-space: nowrap !important;
+        z-index: 1000 !important;
+        pointer-events: none !important;
+    }
     </style>
 </head>
 <body>
@@ -731,16 +746,17 @@
 
     <!-- Set Mapbox token directly -->
     <script>
+        console.log('HTML script block loaded');
         window.MAPBOX_TOKEN = 'pk.eyJ1IjoiaGdvdHRpcGF0aSIsImEiOiJjbTh0cjRzazMwZXFvMnNxMmExNTdqZjBlIn0.JffbXqKwr5oh2_kMapNyDw';
     </script>
     
     <!-- Then load other scripts -->
-    <script type="module" src="js/api.js"></script>
-    <script type="module" src="js/customPopup.js"></script>
-    <script type="module" src="js/mapUtils.js"></script>
-    <script type="module" src="js/location.js"></script>
-    <script type="module" src="js/ui.js"></script>
-    <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/api.js?v=1.1"></script>
+    <script type="module" src="js/customPopup.js?v=1.1"></script>
+    <script type="module" src="js/mapUtils.js?v=1.1"></script>
+    <script type="module" src="js/location.js?v=1.1"></script>
+    <script type="module" src="js/ui.js?v=1.1"></script>
+    <script type="module" src="js/script.js?v=1.1"></script>
 
     <script>
         // Dynamically calculate header height and update CSS variable

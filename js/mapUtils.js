@@ -279,16 +279,28 @@ export function addSearchedLocationMarker(lat, lon, address) {
 
 // Function to create a circle around a point
 function createCircle(center, radiusInMiles) {
-    const earthRadius = 3959; // Earth's radius in miles
-    const radiusInRadians = radiusInMiles / earthRadius;
+    console.log('Creating circle with center:', center, 'radius:', radiusInMiles, 'miles');
+    
+    // Convert miles to degrees (approximate)
+    // 1 degree of latitude ≈ 69 miles
+    // 1 degree of longitude ≈ 69 * cos(latitude) miles
+    const latDegreesPerMile = 1 / 69;
+    const lngDegreesPerMile = 1 / (69 * Math.cos(center[1] * Math.PI / 180));
+    
+    const radiusInLatDegrees = radiusInMiles * latDegreesPerMile;
+    const radiusInLngDegrees = radiusInMiles * lngDegreesPerMile;
     
     const points = [];
     for (let i = 0; i <= 64; i++) {
         const angle = (i / 64) * 2 * Math.PI;
-        const lat = center[1] + (radiusInRadians * Math.cos(angle));
-        const lng = center[0] + (radiusInRadians * Math.sin(angle) / Math.cos(center[1] * Math.PI / 180));
+        const lat = center[1] + (radiusInLatDegrees * Math.cos(angle));
+        const lng = center[0] + (radiusInLngDegrees * Math.sin(angle));
         points.push([lng, lat]);
     }
+    
+    console.log('Circle points range - lat:', Math.min(...points.map(p => p[1])), 'to', Math.max(...points.map(p => p[1])));
+    console.log('Circle points range - lng:', Math.min(...points.map(p => p[0])), 'to', Math.max(...points.map(p => p[0])));
+    console.log('Expected radius in degrees - lat:', radiusInLatDegrees, 'lng:', radiusInLngDegrees);
     
     return points;
 }
@@ -310,14 +322,14 @@ export function updateNearbyCircle(center, radiusType) {
         return;
     }
 
-    // Convert radius type to miles
+    // Convert radius type to miles - realistic walking distances
     let radiusInMiles;
     switch (radiusType) {
         case '5min':
-            radiusInMiles = 0.25; // ~5 min walk
+            radiusInMiles = 0.25; // ~5 min walk (0.25 miles)
             break;
         case '15min':
-            radiusInMiles = 0.75; // ~15 min walk
+            radiusInMiles = 0.75; // ~15 min walk (0.75 miles)
             break;
         case '1mile':
             radiusInMiles = 1.0; // 1 mile
@@ -360,33 +372,112 @@ export function updateNearbyCircle(center, radiusType) {
             type: 'fill',
             source: 'nearby-circle',
             paint: {
-                'fill-color': '#EEC218',
-                'fill-opacity': 0.2
+                'fill-color': '#FFD700', // Brighter gold color
+                'fill-opacity': 0.4
             }
-        });
+        }, 'waterway-label'); // Insert before waterway labels to ensure visibility
 
         map.addLayer({
             id: 'nearby-circle-border',
             type: 'line',
             source: 'nearby-circle',
             paint: {
-                'line-color': '#EEC218',
-                'line-width': 2,
-                'line-opacity': 0.6
+                'line-color': '#FF8C00', // Orange border for better contrast
+                'line-width': 4,
+                'line-opacity': 1.0
             }
-        });
+        }, 'nearby-circle-fill'); // Insert after the fill layer
+
+        // Add walking time markers
+        addWalkingTimeMarkers(map, center, radiusInMiles, radiusType);
 
         console.log(`Added nearby circle with radius ${radiusInMiles} miles around [${center[0]}, ${center[1]}]`);
         console.log('Circle source data:', nearbyCircleSource);
+        console.log('Map layers after adding circle:', map.getStyle().layers.map(l => l.id).filter(id => id.includes('nearby')));
+        
+        // Fit the map to show the circle
+        const bounds = [
+            [Math.min(...circleCoordinates.map(p => p[0])), Math.min(...circleCoordinates.map(p => p[1]))],
+            [Math.max(...circleCoordinates.map(p => p[0])), Math.max(...circleCoordinates.map(p => p[1]))]
+        ];
+        map.fitBounds(bounds, { padding: 50, duration: 1000 });
+        console.log('Map fitted to circle bounds:', bounds);
     }).catch(error => {
         console.error("Error adding nearby circle:", error.message);
     });
+}
+
+// Function to add walking time markers on the circle
+function addWalkingTimeMarkers(map, center, radiusInMiles, radiusType) {
+    // Get walking time text based on radius type
+    let walkingTimeText;
+    switch (radiusType) {
+        case '5min':
+            walkingTimeText = '5 min';
+            break;
+        case '15min':
+            walkingTimeText = '15 min';
+            break;
+        case '1mile':
+            walkingTimeText = '20 min';
+            break;
+        default:
+            walkingTimeText = '';
+    }
+
+    // Create marker element
+    const markerElement = document.createElement('div');
+    markerElement.className = 'walking-time-marker';
+    markerElement.innerHTML = `🚶 ${walkingTimeText}`;
+    markerElement.style.cssText = `
+        background: rgba(255, 140, 0, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        white-space: nowrap;
+        z-index: 1000;
+    `;
+
+    // Calculate position on the circle (top-right quadrant)
+    const angle = Math.PI / 4; // 45 degrees
+    const latDegreesPerMile = 1 / 69;
+    const lngDegreesPerMile = 1 / (69 * Math.cos(center[1] * Math.PI / 180));
+    
+    const radiusInLatDegrees = radiusInMiles * latDegreesPerMile;
+    const radiusInLngDegrees = radiusInMiles * lngDegreesPerMile;
+    
+    const markerLat = center[1] + (radiusInLatDegrees * Math.cos(angle));
+    const markerLng = center[0] + (radiusInLngDegrees * Math.sin(angle));
+
+    // Add marker to map
+    const marker = new mapboxgl.Marker({
+        element: markerElement,
+        anchor: 'center'
+    })
+    .setLngLat([markerLng, markerLat])
+    .addTo(map);
+
+    // Store marker reference for removal
+    if (!window.walkingTimeMarkers) {
+        window.walkingTimeMarkers = [];
+    }
+    window.walkingTimeMarkers.push(marker);
 }
 
 // Function to remove the nearby circle
 export function removeNearbyCircle() {
     getMap().then(map => {
         if (!map) return;
+
+        // Remove walking time markers
+        if (window.walkingTimeMarkers) {
+            window.walkingTimeMarkers.forEach(marker => marker.remove());
+            window.walkingTimeMarkers = [];
+        }
 
         // Remove layers if they exist
         if (map.getLayer('nearby-circle-fill')) {

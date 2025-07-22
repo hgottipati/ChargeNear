@@ -2,6 +2,8 @@ import { getChargers, getAddressSuggestions } from './api.js';
 import { currentLocationCoords, getCurrentLocation } from './location.js';
 import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
 
+console.log('ui.js module loaded');
+
 export async function locateUser() {
     console.log("Locating user...");
     const loading = document.getElementById("loading");
@@ -32,6 +34,9 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
     const closeButton = document.querySelector(".close-button");
     const applyFiltersButton = document.getElementById("apply-filters");
     const resetFiltersButton = document.getElementById("reset-filters");
+    
+    console.log('UI Setup - Filter button found:', !!filterButton);
+    console.log('UI Setup - Filter modal found:', !!filterModal);
 
     // Hide the distance dropdown since we no longer need it
     if (distanceSelect) {
@@ -40,12 +45,15 @@ export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedL
 
     // Filter Modal Controls
     filterButton.addEventListener("click", () => {
+        console.log('Filter button clicked');
         filterModal.style.display = "flex";
         
         // Set up nearby radius event listeners after modal is shown
         setTimeout(() => {
+            console.log('Setting up nearby radius listeners...');
             const nearbyRadiusInputs = filterModal.querySelectorAll('input[name="nearbyRadius"]');
             console.log('Found nearby radius inputs:', nearbyRadiusInputs.length);
+            console.log('Filter modal HTML:', filterModal.innerHTML.substring(0, 500));
             nearbyRadiusInputs.forEach((input, index) => {
                 console.log(`Setting up listener for input ${index}:`, input.id, input.value);
                 // Remove any existing listeners to avoid duplicates
