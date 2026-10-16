@@ -1,7 +1,12 @@
+import { mergeStations, nrelToCharger } from './stations.js';
+
 const OCM_BASE = 'https://api.openchargemap.io/v3/poi/';
-const OCM_CACHE_SECONDS = 600;
-const SEARCH_RADIUS_MILES = 100;
-const MAX_RESULTS = 100;
+const NREL_BASE = 'https://developer.nlr.gov/api/alt-fuel-stations/v1';
+const CACHE_SECONDS = 600;
+const OCM_RADIUS_MILES = 100;
+const OCM_MAX_RESULTS = 100;
+const NREL_RADIUS_MILES = 25;
+const NREL_MAX_RESULTS = 200;
 
 // No X-Frame-Options or frame-ancestors: hosts embed the map in iframes.
 const SECURITY_HEADERS = {
@@ -42,31 +47,34 @@ function roundCoord(value) {
     return Number(value).toFixed(2);
 }
 
-async function cachedOcm(params, env, ctx) {
-    const query = new URLSearchParams({ output: 'json', ...params });
-    const cacheKey = new Request(`https://ocm-cache.chargenear.org/?${query}`);
-    const cache = caches.default;
-
-    const hit = await cache.match(cacheKey);
+async function cached(key, ctx, produce) {
+    const cacheKey = new Request(`https://cache.chargenear.org/${key}`);
+    const hit = await caches.default.match(cacheKey);
     if (hit) return hit;
 
-    if (env.OCM_API_KEY) query.set('key', env.OCM_API_KEY);
-    const upstream = await fetch(`${OCM_BASE}?${query}`, {
-        headers: { Accept: 'application/json', 'User-Agent': 'ChargeNear (https://chargenear.org)' }
-    });
-    if (!upstream.ok) {
-        console.error('Open Charge Map error', upstream.status, query.toString().replace(/key=[^&]+/, 'key=…'));
-        return json({ error: 'Charger data is temporarily unavailable.' }, 502);
-    }
-
-    const response = new Response(upstream.body, {
-        headers: {
-            'content-type': 'application/json; charset=utf-8',
-            'cache-control': `public, max-age=${OCM_CACHE_SECONDS}`
-        }
-    });
-    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    const data = await produce();
+    const response = json(data, 200, { 'cache-control': `public, max-age=${CACHE_SECONDS}` });
+    ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
     return response;
+}
+
+async function fetchJson(url, headers = {}) {
+    const response = await fetch(url, {
+        headers: { Accept: 'application/json', 'User-Agent': 'ChargeNear (https://chargenear.org)', ...headers }
+    });
+    if (!response.ok) throw new Error(`${new URL(url).hostname} responded with ${response.status}`);
+    return response.json();
+}
+
+function fetchOcm(params, env) {
+    const query = new URLSearchParams({ output: 'json', ...params });
+    if (env.OCM_API_KEY) query.set('key', env.OCM_API_KEY);
+    return fetchJson(`${OCM_BASE}?${query}`);
+}
+
+function fetchNrel(path, params, env) {
+    const query = new URLSearchParams(params);
+    return fetchJson(`${NREL_BASE}${path}?${query}`, { 'X-Api-Key': env.NREL_API_KEY });
 }
 
 async function handleChargers(url, env, ctx) {
@@ -75,19 +83,43 @@ async function handleChargers(url, env, ctx) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
         return json({ error: 'lat and lon are required.' }, 400);
     }
-    return cachedOcm({
-        latitude: roundCoord(lat),
-        longitude: roundCoord(lon),
-        distance: SEARCH_RADIUS_MILES,
-        distanceunit: 'Miles',
-        maxresults: MAX_RESULTS
-    }, env, ctx);
+    const latitude = roundCoord(lat);
+    const longitude = roundCoord(lon);
+
+    return cached(`chargers?lat=${latitude}&lon=${longitude}&v=2`, ctx, async () => {
+        const [ocm, nrel] = await Promise.allSettled([
+            fetchOcm({ latitude, longitude, distance: OCM_RADIUS_MILES, distanceunit: 'Miles', maxresults: OCM_MAX_RESULTS }, env),
+            env.NREL_API_KEY
+                ? fetchNrel('/nearest.json', { latitude, longitude, radius: NREL_RADIUS_MILES, fuel_type: 'ELEC', status: 'E,T', country: 'all', limit: NREL_MAX_RESULTS }, env)
+                : Promise.resolve({ fuel_stations: [] })
+        ]);
+        for (const result of [ocm, nrel]) {
+            if (result.status === 'rejected') console.error('Charger source failed', result.reason?.message);
+        }
+        if (ocm.status === 'rejected' && nrel.status === 'rejected') throw new Error('All charger sources failed');
+
+        const center = { Latitude: Number(latitude), Longitude: Number(longitude) };
+        return mergeStations(
+            nrel.status === 'fulfilled' ? nrel.value.fuel_stations || [] : [],
+            ocm.status === 'fulfilled' ? ocm.value : [],
+            center
+        );
+    });
 }
 
 async function handleCharger(url, env, ctx) {
-    const id = url.searchParams.get('id');
-    if (!/^\d{1,10}$/.test(id || '')) return json({ error: 'A numeric id is required.' }, 400);
-    return cachedOcm({ chargepointid: id }, env, ctx);
+    const id = url.searchParams.get('id') || '';
+    const match = id.match(/^(n?)(\d{1,10})$/);
+    if (!match) return json({ error: 'A valid id is required.' }, 400);
+    const [, prefix, number] = match;
+
+    return cached(`charger?id=${id}`, ctx, async () => {
+        if (prefix === 'n') {
+            const data = await fetchNrel(`/${number}.json`, {}, env);
+            return data.alt_fuel_station ? [nrelToCharger(data.alt_fuel_station)] : [];
+        }
+        return fetchOcm({ chargepointid: number }, env);
+    });
 }
 
 async function handleLog(request) {
@@ -130,7 +162,13 @@ export default {
             return Response.redirect(url.toString(), 301);
         }
 
-        const response = await route(request, env, ctx);
+        let response;
+        try {
+            response = await route(request, env, ctx);
+        } catch (error) {
+            console.error('Request failed', url.pathname, error.message);
+            response = json({ error: 'Charger data is temporarily unavailable.' }, 502);
+        }
         return isLocal(url) ? response : withHeaders(response, SECURITY_HEADERS);
     }
 };

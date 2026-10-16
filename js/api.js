@@ -1,7 +1,5 @@
 // api.js
-// Charger data (Open Charge Map) and geocoding (Mapbox).
-
-const TESLA_OPERATOR = 'Tesla (Tesla-only charging)';
+// Charger data (U.S. DOE + Open Charge Map, merged by the Worker) and geocoding (Mapbox).
 
 // Open Charge Map usage types: 2 = Private - Restricted Access, 6 = Private - For Staff, Visitors or Customers
 const PRIVATE_USAGE_TYPE_IDS = [2, 6];
@@ -31,17 +29,20 @@ function operatorTitle(charger) {
     return (charger.OperatorInfo?.Title || '').toLowerCase();
 }
 
+function isTesla(charger) {
+    return operatorTitle(charger).startsWith('tesla');
+}
+
+// OCM uses "Tesla (Model S/X)" for both kinds, so the charging level decides.
 function isTeslaSupercharger(charger) {
-    return charger.OperatorInfo?.Title === TESLA_OPERATOR && hasConnection(charger, conn =>
-        ['NACS / Tesla Supercharger', 'Tesla Supercharger', 'Tesla (Model S/X)'].includes(conn.ConnectionType?.Title) ||
-        (conn.LevelID === 3 && conn.PowerKW >= 72)
+    return isTesla(charger) && hasConnection(charger, conn =>
+        conn.LevelID === 3 || /supercharger/i.test(conn.ConnectionType?.Title || '')
     );
 }
 
 function isTeslaDestination(charger) {
-    return charger.OperatorInfo?.Title === TESLA_OPERATOR && hasConnection(charger, conn =>
-        ['Tesla Destination', 'Tesla (Model S/X)'].includes(conn.ConnectionType?.Title) ||
-        (conn.LevelID === 2 && conn.PowerKW && conn.PowerKW < 72)
+    return isTesla(charger) && !isTeslaSupercharger(charger) && hasConnection(charger, conn =>
+        conn.LevelID === 2 || /destination/i.test(conn.ConnectionType?.Title || '')
     );
 }
 

@@ -55,7 +55,7 @@ class MapManager {
             style: 'mapbox://styles/mapbox/streets-v12',
             center: [lon, lat],
             zoom,
-            customAttribution: 'Charger data © <a href="https://openchargemap.org" target="_blank" rel="noopener">Open Charge Map</a>'
+            customAttribution: 'Charger data: <a href="https://afdc.energy.gov/stations" target="_blank" rel="noopener">U.S. DOE</a>, © <a href="https://openchargemap.org" target="_blank" rel="noopener">Open Charge Map</a>'
         });
 
         this.map.on('load', () => {
@@ -293,7 +293,9 @@ const STALE_AFTER_DAYS = 365;
 
 function lastVerifiedDate(charger) {
     const value = charger.DateLastVerified || charger.DateLastStatusUpdate;
-    return value ? new Date(value) : null;
+    if (!value) return null;
+    // Date-only values (DOE) are calendar days, not UTC midnight.
+    return new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value);
 }
 
 export function isStale(charger) {
@@ -305,10 +307,11 @@ function formatDate(date) {
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// Open Charge Map hours look like "MON: 24 hours | TUE: 24 hours | ...".
+// Open Charge Map hours look like "MON: 24 hours | TUE: ..."; DOE hours like "Mon: 6:00am-10:00pm; Tue: ..." or "24 hours daily".
 function formatAccessNotes(text) {
     if (!text) return null;
-    const parts = text.split('|').map(part => part.trim()).filter(Boolean);
+    if (/^24 hours daily\.?$/i.test(text.trim())) return 'Open 24/7';
+    const parts = text.split(/[|;]/).map(part => part.trim()).filter(Boolean);
     const dayPattern = /^(MON|TUE|WED|THU|FRI|SAT|SUN):\s*(.+)$/i;
     const days = parts.map(part => part.match(dayPattern));
     if (days.length === 7 && days.every(Boolean)) {
@@ -332,6 +335,19 @@ function freshnessNote(charger) {
     return `<p class="freshness"><i class="fa-solid fa-circle-check"></i> Verified ${escapeHtml(formatDate(verified))}</p>`;
 }
 
+const SOURCES = {
+    nrel: {
+        name: 'U.S. Department of Energy',
+        reportUrl: charger => `https://afdc.energy.gov/stations#/station/${encodeURIComponent(charger.SourceID)}`,
+        reportLabel: 'Report it to the DOE station locator'
+    },
+    ocm: {
+        name: 'Open Charge Map community',
+        reportUrl: charger => `https://map.openchargemap.io/?id=${encodeURIComponent(charger.ID)}`,
+        reportLabel: 'Report it on Open Charge Map'
+    }
+};
+
 function chargerCardHtml(charger) {
     const { Latitude, Longitude, Title, AddressLine1, Town, StateOrProvince, Postcode, AccessComments } = charger.AddressInfo;
     const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
@@ -340,6 +356,7 @@ function chargerCardHtml(charger) {
     const access = charger.UsageType?.Title || 'Not listed';
     const hours = formatAccessNotes(AccessComments);
     const notes = charger.GeneralComments;
+    const source = SOURCES[charger.Source] || SOURCES.ocm;
 
     const connectors = (charger.Connections || []).map(conn => {
         const meta = [
@@ -369,7 +386,9 @@ function chargerCardHtml(charger) {
                 ${hours ? `<dt>Hours</dt><dd class="preserve-lines">${escapeHtml(hours)}</dd>` : ''}
                 <dt>Cost</dt>
                 <dd>${escapeHtml(cost)}</dd>
-                ${notes ? `<dt>Notes</dt><dd class="preserve-lines">${escapeHtml(notes)}</dd>` : ''}
+                ${notes ? `<dt>${charger.Source === 'nrel' ? 'Where to find it' : 'Notes'}</dt><dd class="preserve-lines">${escapeHtml(notes)}</dd>` : ''}
+                <dt>Source</dt>
+                <dd>${escapeHtml(source.name)}</dd>
             </dl>
             <div class="charger-connectors">
                 <h4>Connectors</h4>
@@ -383,8 +402,8 @@ function chargerCardHtml(charger) {
                     <i class="fa-solid fa-share-nodes"></i> Share
                 </button>
             </div>
-            <a class="report-link" href="https://map.openchargemap.io/?id=${encodeURIComponent(charger.ID)}" target="_blank" rel="noopener">
-                <i class="fa-regular fa-flag"></i> Not here or wrong info? Report it on Open Charge Map
+            <a class="report-link" href="${escapeHtml(source.reportUrl(charger))}" target="_blank" rel="noopener">
+                <i class="fa-regular fa-flag"></i> Not here or wrong info? ${escapeHtml(source.reportLabel)}
             </a>
         </div>`;
 }
@@ -478,7 +497,8 @@ function syncMarkers(map) {
     const visible = new Map();
     for (const feature of map.querySourceFeatures(CLUSTER_SOURCE)) {
         const props = feature.properties;
-        const key = props.cluster ? `cluster-${props.cluster_id}` : `charger-${props.id}`;
+        if (!props.cluster && !chargersById.has(props.id)) continue;
+        const key = props.cluster ? `cluster-${props.cluster_id}-${props.point_count}` : `charger-${props.id}`;
         if (visible.has(key)) continue;
 
         let marker = markers.get(key);
@@ -525,6 +545,9 @@ export function addChargersToMap(chargers, center) {
         if (!clusterSyncBound) {
             clusterSyncBound = true;
             map.on('render', () => syncMarkers(map));
+            map.on('sourcedata', event => {
+                if (event.sourceId === CLUSTER_SOURCE && event.isSourceLoaded) syncMarkers(map);
+            });
             map.on('style.load', () => ensureClusterSource(map));
         }
     });

@@ -73,6 +73,7 @@ git clone https://github.com/hgottipati/ChargeNear.git
 cat > .dev.vars <<'VARS'
 MAPBOX_TOKEN=pk.your-mapbox-public-token
 OCM_API_KEY=your-open-charge-map-key
+NREL_API_KEY=your-nlr-developer-key
 VARS
 ```
    Restrict the Mapbox token to your domains in your Mapbox account.
@@ -81,7 +82,7 @@ VARS
 npx wrangler dev         # http://localhost:8000
 ```
 
-The Worker (`worker.js`) serves the static files, generates `/config.js` from the `MAPBOX_TOKEN` secret, and proxies Open Charge Map through `/api/chargers` with edge caching, so no keys live in the repo.
+The Worker (`worker.js`) serves the static files, generates `/config.js` from the `MAPBOX_TOKEN` secret, and merges U.S. DOE stations (developer.nlr.gov) with Open Charge Map through `/api/chargers` with edge caching, so no keys live in the repo.
 
 ## Deployment
 Pushing to `main` deploys automatically through Cloudflare Workers (configured in `wrangler.jsonc`). Files listed in `.assetsignore` are not published.
