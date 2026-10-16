@@ -582,9 +582,43 @@ html, body {
     opacity: 0.45;
 }
 
+.cluster-marker {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: var(--navy);
+    color: #fff;
+    font: 700 13px/1 var(--font);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+}
+
+.cluster-marker.is-large {
+    width: 46px;
+    height: 46px;
+    font-size: 15px;
+}
+
+.cluster-marker:hover {
+    background: var(--accent);
+}
+
 .legend-stale {
     background: #16a34a;
     opacity: 0.45;
+}
+
+.legend-cluster {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin: -2px;
+    background: var(--navy);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
 }
 
 .charger-updated {

@@ -3,7 +3,7 @@ import { CustomPopup } from './customPopup.js';
 import { getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
 
-export let markers = [];
+let markers = new Map();
 export let currentLocationMarker = null;
 export let searchedLocationMarker = null;
 let currentPopup = null;
@@ -420,32 +420,112 @@ export function openChargerDetails(charger) {
     currentPopup.open();
 }
 
+const CLUSTER_SOURCE = 'chargers';
+let chargerFeatures = { type: 'FeatureCollection', features: [] };
+let chargersById = new Map();
+let clusterSyncBound = false;
+
+function ensureClusterSource(map) {
+    if (map.getSource(CLUSTER_SOURCE)) return;
+    map.addSource(CLUSTER_SOURCE, {
+        type: 'geojson',
+        data: chargerFeatures,
+        cluster: true,
+        clusterRadius: 44,
+        clusterMaxZoom: 12
+    });
+    // querySourceFeatures only sees sources that a layer uses, so keep an invisible one.
+    map.addLayer({
+        id: 'chargers-index',
+        type: 'circle',
+        source: CLUSTER_SOURCE,
+        paint: { 'circle-radius': 0, 'circle-opacity': 0 }
+    });
+}
+
+function chargerMarker(map, charger, lngLat) {
+    const marker = new mapboxgl.Marker({ color: markerColor(charger) }).setLngLat(lngLat).addTo(map);
+    const el = marker.getElement();
+    el.style.cursor = 'pointer';
+    el.classList.toggle('is-stale', isStale(charger));
+    el.setAttribute('aria-label', tidyName(charger.AddressInfo.Title) || 'EV charger');
+    el.addEventListener('click', event => {
+        event.stopPropagation();
+        openChargerDetails(charger);
+    });
+    return marker;
+}
+
+function clusterMarker(map, clusterId, count, lngLat) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'cluster-marker';
+    el.classList.toggle('is-large', count >= 25);
+    el.textContent = count;
+    el.setAttribute('aria-label', `${count} chargers here. Zoom in`);
+    el.addEventListener('click', event => {
+        event.stopPropagation();
+        map.getSource(CLUSTER_SOURCE).getClusterExpansionZoom(clusterId, (error, zoom) => {
+            if (!error) map.easeTo({ center: lngLat, zoom });
+        });
+    });
+    return new mapboxgl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+}
+
+function syncMarkers(map) {
+    if (!map.getSource(CLUSTER_SOURCE) || !map.isSourceLoaded(CLUSTER_SOURCE)) return;
+
+    const visible = new Map();
+    for (const feature of map.querySourceFeatures(CLUSTER_SOURCE)) {
+        const props = feature.properties;
+        const key = props.cluster ? `cluster-${props.cluster_id}` : `charger-${props.id}`;
+        if (visible.has(key)) continue;
+
+        let marker = markers.get(key);
+        if (!marker) {
+            const lngLat = feature.geometry.coordinates;
+            marker = props.cluster
+                ? clusterMarker(map, props.cluster_id, props.point_count, lngLat)
+                : chargerMarker(map, chargersById.get(props.id), lngLat);
+        }
+        visible.set(key, marker);
+    }
+
+    markers.forEach((marker, key) => {
+        if (!visible.has(key)) marker.remove();
+    });
+    markers = visible;
+}
+
 export function addChargersToMap(chargers, center) {
     if (!center || !center[0] || !center[1]) return;
 
-    markers.forEach(marker => marker.remove());
-    markers = [];
+    chargersById = new Map();
+    chargerFeatures = {
+        type: 'FeatureCollection',
+        features: chargers
+            .filter(charger => charger.AddressInfo?.Latitude && charger.AddressInfo?.Longitude)
+            .map(charger => {
+                chargersById.set(charger.ID, charger);
+                return {
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [charger.AddressInfo.Longitude, charger.AddressInfo.Latitude] },
+                    properties: { id: charger.ID }
+                };
+            })
+    };
 
     getMap().then(map => {
-        chargers.forEach(charger => {
-            const info = charger.AddressInfo;
-            if (!info?.Latitude || !info?.Longitude) return;
+        markers.forEach(marker => marker.remove());
+        markers = new Map();
 
-            const marker = new mapboxgl.Marker({ color: markerColor(charger) })
-                .setLngLat([info.Longitude, info.Latitude])
-                .addTo(map);
-            marker.chargerId = charger.ID;
+        ensureClusterSource(map);
+        map.getSource(CLUSTER_SOURCE).setData(chargerFeatures);
 
-            const el = marker.getElement();
-            el.style.cursor = 'pointer';
-            el.classList.toggle('is-stale', isStale(charger));
-            el.setAttribute('aria-label', tidyName(info.Title) || 'EV charger');
-            el.addEventListener('click', event => {
-                event.stopPropagation();
-                openChargerDetails(charger);
-            });
-
-            markers.push(marker);
-        });
+        if (!clusterSyncBound) {
+            clusterSyncBound = true;
+            map.on('render', () => syncMarkers(map));
+            map.on('style.load', () => ensureClusterSource(map));
+        }
     });
 }
