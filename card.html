@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/report-errors.js?v=4"></script>
+    <title>Nearest EV chargers · ChargeNear</title>
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#00355F">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/main.css?v=4">
+    <link rel="stylesheet" href="/css/card.css?v=1">
+</head>
+<body class="card-page">
+    <main class="nearby-card">
+        <header class="nearby-header">
+            <h1 id="card-title">EV charging nearby</h1>
+            <p id="card-subtitle" class="nearby-subtitle"></p>
+        </header>
+        <ol id="charger-list" class="nearby-list" aria-live="polite">
+            <li class="nearby-status"><span class="spinner"></span> Finding the closest chargers…</li>
+        </ol>
+        <footer class="nearby-footer">
+            <a id="full-map" href="https://chargenear.org/" target="_blank" rel="noopener">
+                <i class="fa-solid fa-map-location-dot"></i> See all on the map
+            </a>
+            <a class="nearby-brand" href="https://chargenear.org/" target="_blank" rel="noopener">
+                <i class="fa-solid fa-bolt"></i> ChargeNear
+            </a>
+        </footer>
+    </main>
+
+    <script src="/config.js" defer></script>
+    <script type="module" src="/js/card.js?v=1"></script>
+</body>
+</html>

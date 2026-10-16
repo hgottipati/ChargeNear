@@ -4,26 +4,50 @@ const SITE = 'https://chargenear.org/';
 
 const form = document.getElementById('embed-form');
 const addressInput = document.getElementById('embed-address');
+const nameInput = document.getElementById('embed-name');
+const countInput = document.getElementById('embed-count');
 const fastInput = document.getElementById('embed-fast');
+const cardOptions = document.getElementById('embed-card-options');
 const preview = document.getElementById('embed-preview');
 const code = document.getElementById('embed-code');
 const copyButton = document.getElementById('copy-embed');
 
+function embedType() {
+    return document.querySelector('input[name="embed-type"]:checked').value;
+}
+
+function cardHeight() {
+    return 120 + Number(countInput.value) * 112;
+}
+
 function embedUrl(origin) {
+    const isCard = embedType() === 'card';
     const params = new URLSearchParams();
     const address = addressInput.value.trim();
     if (address) params.set('address', address);
+    if (isCard && nameInput.value.trim()) params.set('name', nameInput.value.trim());
+    if (isCard && countInput.value !== '3') params.set('count', countInput.value);
     if (fastInput.checked) params.set('fastOnly', 'true');
     const query = params.toString();
-    return query ? `${origin}?${query}` : origin;
+    const base = isCard ? `${origin}card` : origin;
+    return query ? `${base}?${query}` : base;
 }
 
 function render() {
+    const isCard = embedType() === 'card';
+    const height = isCard ? cardHeight() : 500;
+    cardOptions.hidden = !isCard;
+
     preview.src = embedUrl(`${window.location.origin}/`);
+    preview.style.height = `${height}px`;
+    preview.style.maxWidth = isCard ? '480px' : '';
+
+    const title = isCard ? 'Nearest EV chargers' : 'Nearby EV chargers';
+    const allow = isCard ? '' : ' allow="geolocation"';
     code.textContent =
         `<iframe src="${embedUrl(SITE)}"\n` +
-        `        width="100%" height="500" style="border:0; border-radius:12px;"\n` +
-        `        allow="geolocation" loading="lazy" title="Nearby EV chargers"></iframe>`;
+        `        width="100%" height="${height}" style="border:0; border-radius:12px;${isCard ? ' max-width:480px;' : ''}"\n` +
+        `       ${allow} loading="lazy" title="${title}"></iframe>`;
 }
 
 form.addEventListener('submit', event => {
@@ -31,7 +55,9 @@ form.addEventListener('submit', event => {
     render();
 });
 
-fastInput.addEventListener('change', render);
+document.querySelectorAll('input[name="embed-type"]').forEach(input => input.addEventListener('change', render));
+[fastInput, countInput].forEach(input => input.addEventListener('change', render));
+nameInput.addEventListener('change', render);
 
 copyButton.addEventListener('click', async () => {
     try {

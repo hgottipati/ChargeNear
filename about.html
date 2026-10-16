@@ -35,7 +35,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/main.css?v=4">
-    <link rel="stylesheet" href="/css/page.css?v=4">
+    <link rel="stylesheet" href="/css/page.css?v=5">
 </head>
 <body>
     <header class="site-header">
@@ -70,12 +70,30 @@
 
         <section class="card" id="hosts">
             <h2>For hotels and Airbnb hosts</h2>
-            <p>No on-site charger? You can still show EV-driving guests how close the nearest ones are. Enter your property's address, preview the map, and paste the code into your website. It's free and needs no account.</p>
+            <p>No on-site charger? You can still show EV-driving guests how close the nearest ones are. Pick a compact card of the closest chargers or the full map, enter your property's address, and paste the code into your website or listing. It's free and needs no account.</p>
+
+            <fieldset class="embed-type">
+                <legend>What to embed</legend>
+                <label><input type="radio" name="embed-type" value="card" checked> <strong>Nearest chargers card</strong> <span>Compact list for a listing page</span></label>
+                <label><input type="radio" name="embed-type" value="map"> <strong>Full map</strong> <span>Interactive map with filters</span></label>
+            </fieldset>
 
             <form class="embed-form" id="embed-form">
                 <input type="text" id="embed-address" value="Pike Place Market, Seattle, WA" aria-label="Property address" placeholder="Your property's address">
                 <button type="submit" class="btn btn-navy"><i class="fa-solid fa-eye"></i> Preview</button>
             </form>
+            <div class="embed-card-options" id="embed-card-options">
+                <input type="text" id="embed-name" placeholder="Property name (optional), e.g. Lakeview Cabin" aria-label="Property name">
+                <label>Show
+                    <select id="embed-count" aria-label="Number of chargers">
+                        <option value="2">2</option>
+                        <option value="3" selected>3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                    chargers
+                </label>
+            </div>
             <label class="embed-option"><input type="checkbox" id="embed-fast"> Show DC fast chargers only</label>
 
             <iframe class="embed-preview" id="embed-preview" title="ChargeNear map preview" loading="lazy"></iframe>
@@ -128,6 +146,6 @@
         </div>
     </footer>
 
-    <script type="module" src="/js/about.js?v=4"></script>
+    <script type="module" src="/js/about.js?v=5"></script>
 </body>
 </html>
