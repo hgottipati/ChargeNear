@@ -1,4 +1,4 @@
-import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker, updateNearbyCircle } from './mapUtils.js';
+import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker, updateNearbyCircle, walkCircleCenter } from './mapUtils.js';
 import { getChargers, geocode } from './api.js';
 import { getActiveFilters, getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
@@ -46,7 +46,10 @@ export async function showChargersAround(lat, lon, { recenter = true } = {}) {
         showToast('No chargers match your filters here. Try zooming out or changing filters.', 'info');
     }
     const radius = getSelectedRadius();
-    if (radius !== 'none') updateNearbyCircle([lon, lat], radius);
+    if (radius !== 'none') {
+        const center = walkCircleCenter(lat, lon);
+        updateNearbyCircle(center, radius, { fit: center[0] === lon && center[1] === lat });
+    }
 }
 
 export async function locateUser({ quiet = false } = {}) {

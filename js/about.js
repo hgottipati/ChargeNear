@@ -6,8 +6,10 @@ const form = document.getElementById('embed-form');
 const addressInput = document.getElementById('embed-address');
 const nameInput = document.getElementById('embed-name');
 const countInput = document.getElementById('embed-count');
+const radiusInput = document.getElementById('embed-radius');
 const fastInput = document.getElementById('embed-fast');
-const cardOptions = document.getElementById('embed-card-options');
+const countOption = document.getElementById('embed-count-option');
+const radiusOption = document.getElementById('embed-radius-option');
 const preview = document.getElementById('embed-preview');
 const code = document.getElementById('embed-code');
 const copyButton = document.getElementById('copy-embed');
@@ -25,8 +27,9 @@ function embedUrl(origin) {
     const params = new URLSearchParams();
     const address = addressInput.value.trim();
     if (address) params.set('address', address);
-    if (isCard && nameInput.value.trim()) params.set('name', nameInput.value.trim());
+    if (nameInput.value.trim()) params.set('name', nameInput.value.trim());
     if (isCard && countInput.value !== '3') params.set('count', countInput.value);
+    if (!isCard && address && radiusInput.value !== 'none') params.set('radius', radiusInput.value);
     if (fastInput.checked) params.set('fastOnly', 'true');
     const query = params.toString();
     const base = isCard ? `${origin}card` : origin;
@@ -36,7 +39,8 @@ function embedUrl(origin) {
 function render() {
     const isCard = embedType() === 'card';
     const height = isCard ? cardHeight() : 500;
-    cardOptions.hidden = !isCard;
+    countOption.hidden = !isCard;
+    radiusOption.hidden = isCard;
 
     preview.src = embedUrl(`${window.location.origin}/`);
     preview.style.height = `${height}px`;
@@ -56,7 +60,7 @@ form.addEventListener('submit', event => {
 });
 
 document.querySelectorAll('input[name="embed-type"]').forEach(input => input.addEventListener('change', render));
-[fastInput, countInput].forEach(input => input.addEventListener('change', render));
+[fastInput, countInput, radiusInput].forEach(input => input.addEventListener('change', render));
 nameInput.addEventListener('change', render);
 
 copyButton.addEventListener('click', async () => {

@@ -197,7 +197,7 @@ body {
     color: #334155;
 }
 
-.embed-card-options[hidden] {
+.embed-card-options [hidden] {
     display: none;
 }
 

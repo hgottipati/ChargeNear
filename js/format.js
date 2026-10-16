@@ -8,6 +8,14 @@ export function escapeHtml(value) {
     })[char]);
 }
 
+export function milesBetween(a, b) {
+    const toRad = degrees => degrees * Math.PI / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLon = toRad(b.lon - a.lon);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+    return 7917.6 * Math.asin(Math.sqrt(h));
+}
+
 export function tidyName(name) {
     if (!name || /[a-z]/.test(name)) return name;
     return name.split(/(\s+|-|\/)/).map(word => {

@@ -261,6 +261,68 @@ html, body {
     box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.2);
 }
 
+.property-marker {
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+}
+
+.property-pin {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: var(--yellow);
+    background: var(--navy);
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.property-pin::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 50%;
+    border: 6px solid transparent;
+    border-top: 7px solid var(--navy);
+    transform: translateX(-50%);
+}
+
+.property-label {
+    max-width: 180px;
+    overflow: hidden;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background: var(--navy);
+    border: 2px solid #fff;
+    border-radius: 999px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.property-distance {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy);
+    background: var(--yellow-soft);
+    border-radius: var(--radius-sm);
+}
+
 .walking-time-marker {
     padding: 4px 10px;
     font-size: 12px;

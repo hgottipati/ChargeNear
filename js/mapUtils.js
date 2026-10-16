@@ -3,13 +3,22 @@ import { CustomPopup } from './customPopup.js';
 import { getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
 import { setupReports } from './reports.js';
-import { escapeHtml, tidyName } from './format.js';
+import { escapeHtml, milesBetween, tidyName } from './format.js';
 
 let markers = new Map();
 export let currentLocationMarker = null;
 export let searchedLocationMarker = null;
+let propertyMarker = null;
 let currentPopup = null;
 let walkingTimeMarkers = [];
+let circleCenter = null;
+
+// The host's property from an embed or shared link. It stays put while guests search elsewhere.
+export const property = { lat: null, lon: null, label: '' };
+
+export function walkCircleCenter(lat, lon) {
+    return property.lat === null ? [lon, lat] : [property.lon, property.lat];
+}
 
 const MARKER_COLORS = {
     operational: '#16a34a',
@@ -58,8 +67,8 @@ class MapManager {
 
         this.map.on('custom-style-changed', () => {
             const radius = getSelectedRadius();
-            if (radius !== 'none') {
-                updateNearbyCircle(this.map.getCenter().toArray(), radius);
+            if (radius !== 'none' && circleCenter) {
+                updateNearbyCircle(circleCenter, radius, { fit: false });
             }
         });
 
@@ -186,6 +195,34 @@ export function addSearchedLocationMarker(lat, lon, label) {
     });
 }
 
+export function addPropertyMarker(lat, lon, label) {
+    Object.assign(property, { lat, lon, label });
+    if (propertyMarker) propertyMarker.remove();
+
+    const el = document.createElement('div');
+    el.className = 'property-marker';
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', `Property: ${label}`);
+    el.innerHTML = `
+        <span class="property-label">${escapeHtml(label)}</span>
+        <span class="property-pin"><i class="fa-solid fa-house" aria-hidden="true"></i></span>`;
+
+    getMap().then(map => {
+        propertyMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+            .setLngLat([lon, lat])
+            .addTo(map);
+    });
+}
+
+function propertyDistanceHtml(lat, lon) {
+    if (property.lat === null) return '';
+    const miles = milesBetween(property, { lat, lon });
+    const distance = miles < 0.1 ? 'Under 0.1 mi' : `${miles.toFixed(1)} mi`;
+    const walk = miles <= 2 ? ` · about ${Math.max(1, Math.round(miles * 20))} min walk` : '';
+    return `<p class="property-distance"><i class="fa-solid fa-person-walking" aria-hidden="true"></i>
+        ${escapeHtml(distance)} from ${escapeHtml(property.label)}${walk}</p>`;
+}
+
 const RADIUS_OPTIONS = {
     '5min': { miles: 0.25, label: '5 min walk' },
     '15min': { miles: 0.75, label: '15 min walk' },
@@ -206,10 +243,11 @@ function createCircle(center, radiusInMiles) {
     return points;
 }
 
-export async function updateNearbyCircle(center, radiusType) {
+export async function updateNearbyCircle(center, radiusType, { fit = true } = {}) {
     if (!center || !center[0] || !center[1]) return;
 
     await removeNearbyCircle();
+    circleCenter = center;
 
     const option = RADIUS_OPTIONS[radiusType];
     if (!option) return;
@@ -245,6 +283,7 @@ export async function updateNearbyCircle(center, radiusType) {
             .addTo(map)
     );
 
+    if (!fit) return;
     const lngs = coordinates.map(p => p[0]);
     const lats = coordinates.map(p => p[1]);
     map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, duration: 800 });
@@ -362,6 +401,7 @@ function chargerCardHtml(charger) {
                 <p class="charger-operator">${escapeHtml(operator)}</p>
                 ${statusPill(charger.StatusType?.Title)}
             </div>
+            ${propertyDistanceHtml(Latitude, Longitude)}
             ${freshnessNote(charger)}
             <div data-report-summary aria-live="polite"></div>
             <dl class="charger-field">

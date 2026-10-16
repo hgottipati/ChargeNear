@@ -1,5 +1,5 @@
 // script.js
-import { initMap, addSearchedLocationMarker, openChargerDetails } from './mapUtils.js';
+import { initMap, addPropertyMarker, openChargerDetails } from './mapUtils.js';
 import { DEFAULT_LOCATION, locateUser, setLoading, showChargersAround } from './location.js';
 import { setupUI } from './ui.js';
 import { getChargerById, geocode } from './api.js';
@@ -55,8 +55,10 @@ async function init() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('fastOnly') === 'true') {
         document.getElementById('fastOnly').checked = true;
-        document.dispatchEvent(new CustomEvent('chargenear:filters-changed'));
     }
+    const radiusInput = document.querySelector(`input[name="nearbyRadius"][value="${CSS.escape(params.get('radius') || '')}"]`);
+    if (radiusInput) radiusInput.checked = true;
+    document.dispatchEvent(new CustomEvent('chargenear:filters-changed'));
 
     setLoading(true);
     try {
@@ -64,8 +66,9 @@ async function init() {
         await initMap(start.lat, start.lon, 14);
 
         if (start.mode === 'address') {
-            document.getElementById('address').value = params.get('address');
-            addSearchedLocationMarker(start.lat, start.lon, start.label);
+            const address = params.get('address');
+            const name = (params.get('name') || '').trim();
+            addPropertyMarker(start.lat, start.lon, name || address.split(',')[0].trim());
         }
 
         await showChargersAround(start.lat, start.lon);

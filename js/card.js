@@ -1,5 +1,5 @@
 import { getChargers, geocode } from './api.js';
-import { escapeHtml, tidyName } from './format.js';
+import { escapeHtml, milesBetween, tidyName } from './format.js';
 
 const SITE = 'https://chargenear.org/';
 const MAX_COUNT = 5;
@@ -19,14 +19,6 @@ const PLUG_NAMES = [
     [/j1772|type 1/i, 'J1772'],
     [/nema/i, 'Wall outlet']
 ];
-
-function milesBetween(a, b) {
-    const toRad = degrees => degrees * Math.PI / 180;
-    const dLat = toRad(b.lat - a.lat);
-    const dLon = toRad(b.lon - a.lon);
-    const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
-    return 7917.6 * Math.asin(Math.sqrt(h));
-}
 
 function formatDistance(miles) {
     return miles < 0.1 ? '<0.1 mi' : `${miles < 10 ? miles.toFixed(1) : Math.round(miles)} mi`;

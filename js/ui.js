@@ -1,6 +1,6 @@
 import { getChargers, getAddressSuggestions } from './api.js';
 import { searchCenter, searchLocation, setLoading, showChargersAround } from './location.js';
-import { getMap, addChargersToMap, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
+import { getMap, addChargersToMap, updateNearbyCircle, removeNearbyCircle, walkCircleCenter } from './mapUtils.js';
 import { FILTER_IDS, getActiveFilters, countActiveFilters, getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
 
@@ -204,7 +204,7 @@ async function applyCurrentFilters() {
         if (radius === 'none') {
             await removeNearbyCircle();
         } else {
-            await updateNearbyCircle([lon, lat], radius);
+            await updateNearbyCircle(walkCircleCenter(lat, lon), radius);
         }
     } catch (error) {
         window.reportError?.(error);

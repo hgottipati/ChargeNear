@@ -35,7 +35,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/main.css?v=4">
-    <link rel="stylesheet" href="/css/page.css?v=5">
+    <link rel="stylesheet" href="/css/page.css?v=6">
 </head>
 <body>
     <header class="site-header">
@@ -82,9 +82,17 @@
                 <input type="text" id="embed-address" value="Pike Place Market, Seattle, WA" aria-label="Property address" placeholder="Your property's address">
                 <button type="submit" class="btn btn-navy"><i class="fa-solid fa-eye"></i> Preview</button>
             </form>
-            <div class="embed-card-options" id="embed-card-options">
+            <div class="embed-card-options">
                 <input type="text" id="embed-name" placeholder="Property name (optional), e.g. Lakeview Cabin" aria-label="Property name">
-                <label>Show
+                <label id="embed-radius-option">Walking circle
+                    <select id="embed-radius" aria-label="Walking circle around the property">
+                        <option value="none">None</option>
+                        <option value="5min">5 min walk</option>
+                        <option value="15min" selected>15 min walk</option>
+                        <option value="1mile">1 mile</option>
+                    </select>
+                </label>
+                <label id="embed-count-option">Show
                     <select id="embed-count" aria-label="Number of chargers">
                         <option value="2">2</option>
                         <option value="3" selected>3</option>
@@ -146,6 +154,6 @@
         </div>
     </footer>
 
-    <script type="module" src="/js/about.js?v=5"></script>
+    <script type="module" src="/js/about.js?v=6"></script>
 </body>
 </html>
