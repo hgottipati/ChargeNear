@@ -8,7 +8,8 @@
     "enabled": true
   },
   "dev": {
-    "port": 8000
+    "port": 8000,
+    "host": "localhost"
   },
   "routes": [
     { "pattern": "chargenear.org", "custom_domain": true },
