@@ -1,11 +1,6 @@
 // api.js
 // Charger data (Open Charge Map) and geocoding (Mapbox).
 
-const OCM_API_KEY = 'b61c6aab-6cef-43a9-af78-215cb02d1464';
-const OCM_BASE = 'https://api.openchargemap.io/v3/poi/';
-const SEARCH_RADIUS_MILES = 100;
-const CORS_PROXY = 'https://corsproxy.io/?';
-
 const TESLA_OPERATOR = 'Tesla (Tesla-only charging)';
 
 // Open Charge Map usage types: 2 = Private - Restricted Access, 6 = Private - For Staff, Visitors or Customers
@@ -22,19 +17,10 @@ const NETWORK_FILTERS = {
     semaConnect: 'semaconnect'
 };
 
-async function fetchOcm(params) {
-    const query = new URLSearchParams({ output: 'json', key: OCM_API_KEY, ...params });
-    const url = `${OCM_BASE}?${query}`;
-    try {
-        const response = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(`Open Charge Map responded with ${response.status}`);
-        return await response.json();
-    } catch (directError) {
-        console.warn('Direct Open Charge Map call failed, retrying through proxy:', directError.message);
-        const response = await fetch(CORS_PROXY + encodeURIComponent(url), { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(`Couldn't load chargers (status ${response.status})`);
-        return await response.json();
-    }
+async function fetchJson(path, params) {
+    const response = await fetch(`${path}?${new URLSearchParams(params)}`, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error(`Couldn't load chargers (status ${response.status})`);
+    return response.json();
 }
 
 function hasConnection(charger, predicate) {
@@ -88,18 +74,12 @@ export function applyFilters(chargers, filters = {}) {
 }
 
 export async function getChargers(lat, lon, filters = {}) {
-    const chargers = await fetchOcm({
-        latitude: lat,
-        longitude: lon,
-        distance: SEARCH_RADIUS_MILES,
-        distanceunit: 'Miles',
-        maxresults: 100
-    });
+    const chargers = await fetchJson('/api/chargers', { lat, lon });
     return applyFilters(chargers, filters);
 }
 
 export async function getChargerById(id) {
-    const chargers = await fetchOcm({ chargepointid: id });
+    const chargers = await fetchJson('/api/charger', { id });
     return chargers[0] || null;
 }
 

@@ -10,12 +10,8 @@ node_modules
 venv
 __pycache__
 *.pyc
-config.js
-config.example.js
 worker.js
 wrangler.jsonc
-server.py
-requirements.txt
 README.md
 LICENSE
 docs

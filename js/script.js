@@ -25,7 +25,7 @@ async function resolveStartLocation(params) {
             }
             showToast("That shared charger couldn't be found.", 'error');
         } catch (error) {
-            console.error('Error loading shared charger:', error);
+            window.reportError?.(error);
             showToast("Couldn't load the shared charger.", 'error');
         }
     }
@@ -80,7 +80,7 @@ async function init() {
             }
         }
     } catch (error) {
-        console.error('Error during initialization:', error);
+        window.reportError?.(error);
         showToast("Something went wrong loading chargers. Please refresh the page.", 'error', 6000);
     } finally {
         setLoading(false);

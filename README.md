@@ -68,23 +68,20 @@ Copy this iframe code into your website's HTML:
 ```bash
 git clone https://github.com/hgottipati/ChargeNear.git
 ```
-2. Add your Mapbox public token (get one at mapbox.com) for local development. Both files are gitignored:
+2. Put your keys in `.dev.vars` (gitignored). The Mapbox token is required; the Open Charge Map key is optional but recommended:
 ```bash
-cp config.example.js config.js          # for python server.py
-echo "MAPBOX_TOKEN=pk.your-token" > .dev.vars   # for npx wrangler dev
+cat > .dev.vars <<'VARS'
+MAPBOX_TOKEN=pk.your-mapbox-public-token
+OCM_API_KEY=your-open-charge-map-key
+VARS
 ```
-   Restrict the token to your domains in your Mapbox account. In production, the Cloudflare Worker (`worker.js`) serves `/config.js` from the `MAPBOX_TOKEN` secret, so the token never lives in the repo.
-3. Install dependencies:
+   Restrict the Mapbox token to your domains in your Mapbox account.
+3. Run the same Cloudflare Worker setup as production (requires Node.js):
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+npx wrangler dev         # http://localhost:8000
 ```
-4. Run locally, either with the simple Python server or with the same Worker setup as production:
-```bash
-python3 server.py        # http://localhost:8000
-npx wrangler dev         # http://localhost:8787 (uses .dev.vars)
-```
+
+The Worker (`worker.js`) serves the static files, generates `/config.js` from the `MAPBOX_TOKEN` secret, and proxies Open Charge Map through `/api/chargers` with edge caching, so no keys live in the repo.
 
 ## Deployment
 Pushing to `main` deploys automatically through Cloudflare Workers (configured in `wrangler.jsonc`). Files listed in `.assetsignore` are not published.

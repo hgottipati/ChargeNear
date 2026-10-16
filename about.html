@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/report-errors.js?v=4"></script>
     <script>
         if (location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(location.hostname)) {
             location.replace('https://' + location.host + location.pathname + location.search + location.hash);
@@ -97,7 +98,7 @@
 
         <section class="card" id="privacy">
             <h2>Privacy</h2>
-            <p>ChargeNear has no accounts and doesn't store your location. If you allow location access, it's used in your browser only to center the map. To show results, your browser sends map positions and searches directly to <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener noreferrer">Mapbox</a> (maps and address search) and <a href="https://openchargemap.org" target="_blank" rel="noopener noreferrer">Open Charge Map</a> (charger data). If Open Charge Map can't be reached directly, the request is retried through the corsproxy.io relay. Fonts and icons load from Google Fonts and cdnjs.</p>
+            <p>ChargeNear has no accounts and doesn't store your location. If you allow location access, it's used in your browser only to center the map. To show results, your browser sends map positions and searches to <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener noreferrer">Mapbox</a> (maps and address search). Charger lookups go through ChargeNear's own server, which asks <a href="https://openchargemap.org" target="_blank" rel="noopener noreferrer">Open Charge Map</a> for the area (rounded to about 1 km) and doesn't log your position. If something breaks, the page sends the error message (no location) to our logs so it can be fixed. Fonts and icons load from Google Fonts and cdnjs.</p>
         </section>
 
         <section class="card">

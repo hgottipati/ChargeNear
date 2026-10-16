@@ -152,7 +152,7 @@ function setupFilters() {
                 await updateNearbyCircle([lon, lat], radius);
             }
         } catch (error) {
-            console.error('Error applying filters:', error);
+            window.reportError?.(error);
             showToast("Couldn't update chargers. Please try again.", 'error');
         } finally {
             setLoading(false);
@@ -186,7 +186,7 @@ function setupSearchThisArea() {
             try {
                 await showChargersAround(lat, lng, { recenter: false });
             } catch (error) {
-                console.error('Error searching this area:', error);
+                window.reportError?.(error);
                 showToast("Couldn't load chargers here. Please try again.", 'error');
             } finally {
                 button.disabled = false;

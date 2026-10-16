@@ -7,11 +7,14 @@
   "observability": {
     "enabled": true
   },
+  "dev": {
+    "port": 8000
+  },
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
     "not_found_handling": "404-page"
   }
-  // MAPBOX_TOKEN is a secret: set it in the Cloudflare dashboard (Worker > Settings > Variables and Secrets)
-  // or with `npx wrangler secret put MAPBOX_TOKEN`. For local `wrangler dev`, put it in .dev.vars.
+  // Secrets MAPBOX_TOKEN and OCM_API_KEY: set them with `npx wrangler secret put NAME`
+  // or in the Cloudflare dashboard (Worker > Settings > Variables and Secrets). Locally, use .dev.vars.
 }
