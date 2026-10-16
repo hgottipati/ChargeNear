@@ -3,6 +3,7 @@
   "name": "chargenear",
   "main": "worker.js",
   "compatibility_date": "2026-04-17",
+  "keep_vars": true,
   "observability": {
     "enabled": true
   },
