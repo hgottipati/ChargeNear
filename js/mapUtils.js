@@ -652,13 +652,17 @@ function isClear(rect, blockers) {
     return !blockers.some(blocker => overlaps(rect, blocker));
 }
 
+function isInside(rect, bounds) {
+    return rect.left >= bounds.left && rect.right <= bounds.right && rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+}
+
 // Tries the current spot first so labels don't jump around while the map moves.
-function placeWithoutOverlap(count, startIndex, apply, measure, blockers) {
+function placeWithoutOverlap(count, startIndex, apply, measure, blockers, bounds) {
     for (let step = 0; step < count; step++) {
         const index = (startIndex + step) % count;
         apply(index);
         const rect = measure();
-        if (isClear(rect, blockers)) return { index, rect };
+        if (isClear(rect, blockers) && isInside(rect, bounds)) return { index, rect };
     }
     return null;
 }
@@ -703,6 +707,7 @@ function mergeOverlappingChargers(items) {
 }
 
 function layoutOverlays() {
+    const bounds = document.getElementById('map').getBoundingClientRect();
     const blockers = [...document.querySelectorAll(MAP_CHROME)]
         .map(el => el.getBoundingClientRect())
         .filter(rect => rect.width && rect.height);
@@ -741,7 +746,7 @@ function layoutOverlays() {
         const start = Math.max(0, LABEL_PLACES.indexOf(label.dataset.place));
         const placed = placeWithoutOverlap(LABEL_PLACES.length, start,
             index => { label.dataset.place = LABEL_PLACES[index]; },
-            () => label.getBoundingClientRect(), blockers);
+            () => label.getBoundingClientRect(), blockers, bounds);
         if (placed) blockers.push(placed.rect);
         else label.style.visibility = 'hidden';
     }
@@ -752,7 +757,7 @@ function layoutOverlays() {
         el.style.visibility = '';
         const placed = placeWithoutOverlap(LABEL_ANGLES.length, walkingLabel.index,
             index => marker.setLngLat(circleOffset(center, miles, LABEL_ANGLES[index])),
-            () => el.getBoundingClientRect(), blockers);
+            () => el.getBoundingClientRect(), blockers, bounds);
         if (placed) walkingLabel.index = placed.index;
         else el.style.visibility = 'hidden';
     }
