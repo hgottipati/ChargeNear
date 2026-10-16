@@ -19,6 +19,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
+      # Cloudflare caches JS/CSS at the edge, so every deploy needs unique asset URLs,
+      # including the ES module imports, or old and new modules can mix.
+      - name: Version asset URLs
+        run: |
+          V="${GITHUB_SHA::8}"
+          sed -i -E "s#(from '\./[A-Za-z]+\.js)'#\1?v=${V}'#g" js/*.js
+          sed -i -E "s#\?v=[0-9]+\"#?v=${V}\"#g" *.html
+          grep -c "?v=${V}" js/*.js *.html
+
       - name: Deploy to S3
         run: |
           # Sync all files except those in .git and .github
