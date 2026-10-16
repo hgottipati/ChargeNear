@@ -823,7 +823,8 @@ export function addChargersToMap(chargers, center) {
         if (!clusterSyncBound) {
             clusterSyncBound = true;
             map.on('render', () => syncMarkers(map));
-            map.on('idle', () => requestAnimationFrame(layoutOverlays));
+            map.on('moveend', layoutOverlays);
+            map.on('idle', layoutOverlays);
             map.on('sourcedata', event => {
                 if (event.sourceId === CLUSTER_SOURCE && event.isSourceLoaded) syncMarkers(map);
             });
