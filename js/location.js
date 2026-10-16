@@ -34,11 +34,12 @@ export function setLoading(isLoading) {
     document.getElementById('loading')?.classList.toggle('is-visible', isLoading);
 }
 
-export async function showChargersAround(lat, lon) {
+export async function showChargersAround(lat, lon, { recenter = true } = {}) {
     searchCenter.lat = lat;
     searchCenter.lon = lon;
+    document.dispatchEvent(new CustomEvent('chargenear:searched'));
     const map = await getMap();
-    map.jumpTo({ center: [lon, lat], zoom: 14 });
+    if (recenter) map.jumpTo({ center: [lon, lat], zoom: 14 });
     const chargers = await getChargers(lat, lon, getActiveFilters());
     addChargersToMap(chargers, [lon, lat]);
     if (chargers.length === 0) {

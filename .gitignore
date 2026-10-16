@@ -2,4 +2,5 @@ venv/
 __pycache__/
 *.pyc
 config.js
-js/api.js
+.idea/
+.DS_Store

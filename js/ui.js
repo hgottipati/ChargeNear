@@ -1,6 +1,6 @@
 import { getChargers, getAddressSuggestions } from './api.js';
-import { searchCenter, searchLocation, setLoading } from './location.js';
-import { addChargersToMap, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
+import { searchCenter, searchLocation, setLoading, showChargersAround } from './location.js';
+import { getMap, addChargersToMap, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
 import { getActiveFilters, countActiveFilters, getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
 
@@ -161,7 +161,52 @@ function setupFilters() {
     updateFilterBadges();
 }
 
+function setupSearchThisArea() {
+    const button = document.getElementById('search-area');
+
+    document.addEventListener('chargenear:searched', () => {
+        button.hidden = true;
+    });
+
+    getMap().then(map => {
+        map.on('moveend', () => {
+            const canvas = map.getCanvas();
+            const viewport = Math.min(canvas.clientWidth, canvas.clientHeight);
+            const searched = map.project([searchCenter.lon, searchCenter.lat]);
+            const center = map.project(map.getCenter());
+            const movedFar = Math.hypot(searched.x - center.x, searched.y - center.y) > viewport / 3;
+            button.hidden = !movedFar;
+        });
+
+        button.addEventListener('click', async () => {
+            const { lat, lng } = map.getCenter();
+            button.disabled = true;
+            setLoading(true);
+            try {
+                await showChargersAround(lat, lng, { recenter: false });
+            } catch (error) {
+                console.error('Error searching this area:', error);
+                showToast("Couldn't load chargers here. Please try again.", 'error');
+            } finally {
+                button.disabled = false;
+                setLoading(false);
+            }
+        });
+    });
+}
+
+function setupLegend() {
+    const legend = document.getElementById('map-legend');
+    const toggle = legend.querySelector('.legend-toggle');
+    toggle.addEventListener('click', () => {
+        const expanded = legend.classList.toggle('is-open');
+        toggle.setAttribute('aria-expanded', String(expanded));
+    });
+}
+
 export function setupUI() {
     setupSearch();
     setupFilters();
+    setupSearchThisArea();
+    setupLegend();
 }

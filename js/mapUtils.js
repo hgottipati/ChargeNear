@@ -1,7 +1,6 @@
-import { getChargers } from './api.js';
 import { locateUser } from './location.js';
 import { CustomPopup } from './customPopup.js';
-import { getActiveFilters, getSelectedRadius } from './filters.js';
+import { getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
 
 export let markers = [];
@@ -75,16 +74,6 @@ class MapManager {
             const radius = getSelectedRadius();
             if (radius !== 'none') {
                 updateNearbyCircle(this.map.getCenter().toArray(), radius);
-            }
-        });
-
-        this.map.on('moveend', async () => {
-            const center = this.map.getCenter();
-            try {
-                const chargers = await getChargers(center.lat, center.lng, getActiveFilters());
-                addChargersToMap(chargers, [center.lng, center.lat]);
-            } catch (error) {
-                console.error('Error fetching chargers on map move:', error.message);
             }
         });
 
