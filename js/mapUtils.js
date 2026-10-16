@@ -451,7 +451,7 @@ function ensureClusterSource(map) {
         data: chargerFeatures,
         cluster: true,
         clusterRadius: 44,
-        clusterMaxZoom: 12
+        clusterMaxZoom: 14
     });
     // querySourceFeatures only sees sources that a layer uses, so keep an invisible one.
     map.addLayer({

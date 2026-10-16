@@ -18,8 +18,8 @@
     <meta name="theme-color" content="#00355F">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">
     <link rel="manifest" href="/site.webmanifest">
 
     <meta property="og:site_name" content="ChargeNear">
@@ -41,11 +41,27 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://api.mapbox.com">
+    <link rel="preconnect" href="https://api.mapbox.com" crossorigin>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/css/main.css?v=3">
-    <link rel="stylesheet" href="/css/map.css?v=3">
+    <link rel="stylesheet" href="/css/main.css?v=4">
+    <link rel="stylesheet" href="/css/map.css?v=4">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "ChargeNear",
+        "url": "https://chargenear.org/",
+        "description": "A free, interactive map of nearby EV charging stations, with filters for network, plug type, and power, and an embeddable version for hotels and rental hosts.",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Any",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "Hareesh Gottipati" }
+    }
+    </script>
 </head>
 <body>
     <header class="site-header">
@@ -180,7 +196,7 @@
         </div>
     </div>
 
-    <script src="/config.js"></script>
-    <script type="module" src="/js/script.js?v=3"></script>
+    <script src="/config.js" defer></script>
+    <script type="module" src="/js/script.js?v=4"></script>
 </body>
 </html>
