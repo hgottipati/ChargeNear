@@ -10,9 +10,15 @@
   "dev": {
     "port": 8000
   },
+  "routes": [
+    { "pattern": "chargenear.org", "custom_domain": true },
+    { "pattern": "www.chargenear.org", "custom_domain": true }
+  ],
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
+    // Run the Worker for every request so HTTPS/www redirects and security headers apply to pages too.
+    "run_worker_first": true,
     "not_found_handling": "404-page"
   }
   // Secrets MAPBOX_TOKEN and OCM_API_KEY: set them with `npx wrangler secret put NAME`
