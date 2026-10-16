@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "chargenear",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "32c41431-aff5-4be3-a144-231f03b9921f",
       "migrations_dir": "migrations"
     }
   ],
