@@ -187,6 +187,7 @@ function renderFilterChips() {
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
         </li>`).join('');
+    getMap().then(map => map.triggerRepaint());
 }
 
 async function applyCurrentFilters() {
@@ -228,7 +229,10 @@ function setupSearchThisArea() {
             const searched = map.project([searchCenter.lon, searchCenter.lat]);
             const center = map.project(map.getCenter());
             const movedFar = Math.hypot(searched.x - center.x, searched.y - center.y) > viewport / 3;
-            button.hidden = !movedFar;
+            if (button.hidden === movedFar) {
+                button.hidden = !movedFar;
+                map.triggerRepaint();
+            }
         });
 
         button.addEventListener('click', async () => {
@@ -254,6 +258,7 @@ function setupLegend() {
     toggle.addEventListener('click', () => {
         const expanded = legend.classList.toggle('is-open');
         toggle.setAttribute('aria-expanded', String(expanded));
+        getMap().then(map => map.triggerRepaint());
     });
 }
 
