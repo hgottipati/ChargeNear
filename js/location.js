@@ -76,7 +76,7 @@ export async function searchLocation(query) {
 
     setLoading(true);
     try {
-        const { lat, lon, label } = await geocode(trimmed);
+        const { lat, lon, label } = await geocode(trimmed, searchCenter);
         addSearchedLocationMarker(lat, lon, label);
         await showChargersAround(lat, lon);
     } catch (error) {

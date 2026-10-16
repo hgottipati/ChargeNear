@@ -192,6 +192,7 @@ export function addSearchedLocationMarker(lat, lon, label) {
             .setPopup(new mapboxgl.Popup({ offset: 30 }).setHTML(`<strong>${escapeHtml(label)}</strong>`))
             .addTo(map);
         searchedLocationMarker.getElement().setAttribute('aria-label', `Searched location: ${label}`);
+        searchedLocationMarker.getElement().style.zIndex = '2';
     });
 }
 

@@ -1,4 +1,5 @@
 import { showToast } from './toast.js';
+import { geocode } from './api.js';
 
 const SITE = 'https://chargenear.org/';
 
@@ -13,6 +14,26 @@ const radiusOption = document.getElementById('embed-radius-option');
 const preview = document.getElementById('embed-preview');
 const code = document.getElementById('embed-code');
 const copyButton = document.getElementById('copy-embed');
+const resolved = document.getElementById('embed-resolved');
+let resolvedFor = null;
+
+async function showResolvedAddress() {
+    const address = addressInput.value.trim();
+    if (address === resolvedFor) return;
+    resolvedFor = address;
+    if (!address) {
+        resolved.textContent = '';
+        return;
+    }
+    try {
+        const place = await geocode(address);
+        if (address !== resolvedFor) return;
+        resolved.innerHTML = '<i class="fa-solid fa-location-dot" aria-hidden="true"></i> ';
+        resolved.append(`Pinned at: ${place.label}. Not right? Use the street address instead.`);
+    } catch (error) {
+        if (address === resolvedFor) resolved.textContent = error.message;
+    }
+}
 
 function embedType() {
     return document.querySelector('input[name="embed-type"]:checked').value;
@@ -42,6 +63,7 @@ function render() {
     countOption.hidden = !isCard;
     radiusOption.hidden = isCard;
 
+    showResolvedAddress();
     preview.src = embedUrl(`${window.location.origin}/`);
     preview.style.height = `${height}px`;
     preview.style.maxWidth = isCard ? '480px' : '';

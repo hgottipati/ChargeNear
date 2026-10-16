@@ -144,6 +144,16 @@ body {
     height: 44px;
 }
 
+.embed-resolved {
+    margin: -4px 0 12px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.embed-resolved i {
+    color: var(--navy);
+}
+
 .embed-type {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

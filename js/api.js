@@ -84,16 +84,14 @@ export async function getChargerById(id) {
     return chargers[0] || null;
 }
 
-export async function geocode(query) {
-    const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${window.MAPBOX_TOKEN}&limit=1`
-    );
+export async function geocode(query, near) {
+    const params = new URLSearchParams({ q: query });
+    if (near) params.set('near', `${near.lat},${near.lon}`);
+    const response = await fetch(`/api/geocode?${params}`);
     if (!response.ok) throw new Error("Couldn't search for that location. Please try again.");
-    const data = await response.json();
-    const feature = data.features?.[0];
-    if (!feature) throw new Error(`No results for "${query}". Try a city, address, or zip code.`);
-    const [lon, lat] = feature.center;
-    return { lat, lon, label: feature.place_name };
+    const result = await response.json();
+    if (!result) throw new Error(`No results for "${query}". Try a city, address, or zip code.`);
+    return result;
 }
 
 export async function getAddressSuggestions(query) {
