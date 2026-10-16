@@ -10,7 +10,7 @@ export let currentLocationMarker = null;
 export let searchedLocationMarker = null;
 let propertyMarker = null;
 let currentPopup = null;
-let walkingTimeMarkers = [];
+let walkingLabel = null;
 let circleCenter = null;
 
 // The host's property from an embed or shared link. It stays put while guests search elsewhere.
@@ -191,9 +191,33 @@ export function addSearchedLocationMarker(lat, lon, label) {
             .setLngLat([lon, lat])
             .setPopup(new mapboxgl.Popup({ offset: 30 }).setHTML(`<strong>${escapeHtml(label)}</strong>`))
             .addTo(map);
-        searchedLocationMarker.getElement().setAttribute('aria-label', `Searched location: ${label}`);
-        searchedLocationMarker.getElement().style.zIndex = '2';
+        const el = searchedLocationMarker.getElement();
+        el.setAttribute('aria-label', `Searched location: ${label}`);
+        el.style.zIndex = '2';
+        el.append(anchorBadge(searchedLocationMarker, label));
+        map.triggerRepaint();
     });
+}
+
+// Chargers hidden under a property or searched pin are listed from this badge instead.
+function anchorBadge(marker, title) {
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.className = 'anchor-badge';
+    badge.hidden = true;
+    badge.addEventListener('click', event => {
+        event.stopPropagation();
+        openAbsorbedChargers(marker, title);
+    });
+    return badge;
+}
+
+function updateAnchorBadge(marker, count) {
+    const badge = marker.getElement().querySelector('.anchor-badge');
+    if (!badge) return;
+    badge.hidden = count === 0;
+    badge.innerHTML = `<i class="fa-solid fa-bolt" aria-hidden="true"></i>${count}`;
+    badge.setAttribute('aria-label', `${count} ${count === 1 ? 'charger' : 'chargers'} here. Show list`);
 }
 
 const PROPERTY_ICONS = { hotel: 'fa-hotel', home: 'fa-house' };
@@ -204,16 +228,16 @@ export function addPropertyMarker(lat, lon, label, type = 'home') {
 
     const el = document.createElement('div');
     el.className = 'property-marker';
-    el.setAttribute('role', 'img');
-    el.setAttribute('aria-label', `Property: ${label}`);
     el.innerHTML = `
-        <span class="property-label">${escapeHtml(label)}</span>
-        <span class="property-pin"><i class="fa-solid ${PROPERTY_ICONS[type] || PROPERTY_ICONS.home}" aria-hidden="true"></i></span>`;
+        <span class="property-pin" role="img" aria-label="Property: ${escapeHtml(label)}"><i class="fa-solid ${PROPERTY_ICONS[type] || PROPERTY_ICONS.home}" aria-hidden="true"></i></span>
+        <span class="property-label" data-place="top" aria-hidden="true">${escapeHtml(label)}</span>`;
 
     getMap().then(map => {
         propertyMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
             .setLngLat([lon, lat])
             .addTo(map);
+        el.append(anchorBadge(propertyMarker, label));
+        map.triggerRepaint();
     });
 }
 
@@ -280,11 +304,15 @@ export async function updateNearbyCircle(center, radiusType, { fit = true } = {}
     const label = document.createElement('div');
     label.className = 'walking-time-marker';
     label.textContent = option.label;
-    walkingTimeMarkers.push(
-        new mapboxgl.Marker({ element: label, anchor: 'center' })
-            .setLngLat(circleOffset(center, option.miles, Math.PI / 4))
-            .addTo(map)
-    );
+    walkingLabel = {
+        marker: new mapboxgl.Marker({ element: label, anchor: 'center' })
+            .setLngLat(circleOffset(center, option.miles, LABEL_ANGLES[0]))
+            .addTo(map),
+        center,
+        miles: option.miles,
+        index: 0
+    };
+    map.triggerRepaint();
 
     if (!fit) return;
     const lngs = coordinates.map(p => p[0]);
@@ -294,8 +322,8 @@ export async function updateNearbyCircle(center, radiusType, { fit = true } = {}
 
 export async function removeNearbyCircle() {
     const map = await getMap();
-    walkingTimeMarkers.forEach(marker => marker.remove());
-    walkingTimeMarkers = [];
+    walkingLabel?.marker.remove();
+    walkingLabel = null;
     if (map.getLayer('nearby-circle-fill')) map.removeLayer('nearby-circle-fill');
     if (map.getLayer('nearby-circle-border')) map.removeLayer('nearby-circle-border');
     if (map.getSource('nearby-circle')) map.removeSource('nearby-circle');
@@ -479,9 +507,11 @@ function ensureClusterSource(map) {
     map.addSource(CLUSTER_SOURCE, {
         type: 'geojson',
         data: chargerFeatures,
+        // Clustering at every zoom, with a radius taller than a pin, keeps markers from touching.
         cluster: true,
-        clusterRadius: 44,
-        clusterMaxZoom: 14
+        clusterRadius: 64,
+        maxzoom: 24,
+        clusterMaxZoom: 23
     });
     // querySourceFeatures only sees sources that a layer uses, so keep an invisible one.
     map.addLayer({
@@ -510,7 +540,78 @@ function chargerMarker(map, charger, lngLat) {
             openChargerDetails(charger);
         }
     });
+    marker.chargerId = charger.ID;
+    marker.chargerCount = 1;
     return marker;
+}
+
+// Past this zoom a cluster is one building, so list its chargers instead of zooming further.
+const LIST_CLUSTER_ZOOM = 19;
+
+function clusterLeaves(map, clusterId) {
+    return new Promise(resolve => {
+        map.getSource(CLUSTER_SOURCE).getClusterLeaves(clusterId, 500, 0, (error, leaves) => {
+            resolve(error ? [] : leaves.map(leaf => chargersById.get(leaf.properties.id)).filter(Boolean));
+        });
+    });
+}
+
+function chargerListHtml(title, chargers) {
+    const items = chargers.map(charger => {
+        const fast = (charger.Connections || []).some(conn => conn.LevelID === 3);
+        const meta = [charger.OperatorInfo?.Title || 'Unknown network', fast ? 'DC fast' : 'Level 2'].join(' · ');
+        return `
+            <li>
+                <button type="button" class="charger-list-item" data-open-charger="${escapeHtml(charger.ID)}">
+                    <span class="charger-list-dot" style="background:${markerColor(charger)}" aria-hidden="true"></span>
+                    <span class="charger-list-text">
+                        <span class="charger-list-name">${escapeHtml(tidyName(charger.AddressInfo?.Title) || 'EV charger')}</span>
+                        <span class="charger-list-meta">${escapeHtml(meta)}</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+            </li>`;
+    }).join('');
+    return `
+        <div class="charger-card">
+            <div class="charger-card-header">
+                <h3>${escapeHtml(title)}</h3>
+                <p class="charger-operator">${chargers.length} chargers here</p>
+            </div>
+            <ul class="charger-list">${items}</ul>
+        </div>`;
+}
+
+function showChargerList(title, chargers) {
+    if (chargers.length === 0) return;
+    if (chargers.length === 1) {
+        openChargerDetails(chargers[0]);
+        return;
+    }
+    currentPopup ||= new CustomPopup();
+    currentPopup.setHTML(chargerListHtml(title, chargers));
+    currentPopup.container.querySelectorAll('[data-open-charger]').forEach(button => {
+        button.addEventListener('click', () => {
+            const charger = chargers.find(each => String(each.ID) === button.dataset.openCharger);
+            if (charger) openChargerDetails(charger);
+        });
+    });
+    currentPopup.open();
+}
+
+const MAX_LISTED_CHARGERS = 10;
+
+async function openAbsorbedChargers(anchor, title) {
+    const map = await getMap();
+    const total = (anchor.absorbed || []).reduce((sum, marker) => sum + marker.chargerCount, 0);
+    if (total > MAX_LISTED_CHARGERS) {
+        map.easeTo({ center: anchor.getLngLat(), zoom: map.getZoom() + 2 });
+        return;
+    }
+    const groups = await Promise.all((anchor.absorbed || []).map(marker =>
+        marker.clusterId !== undefined ? clusterLeaves(map, marker.clusterId) : [chargersById.get(marker.chargerId)]
+    ));
+    showChargerList(title, groups.flat().filter(Boolean));
 }
 
 function clusterMarker(map, clusterId, count, lngLat) {
@@ -522,11 +623,139 @@ function clusterMarker(map, clusterId, count, lngLat) {
     el.setAttribute('aria-label', `${count} chargers here. Zoom in`);
     el.addEventListener('click', event => {
         event.stopPropagation();
-        map.getSource(CLUSTER_SOURCE).getClusterExpansionZoom(clusterId, (error, zoom) => {
-            if (!error) map.easeTo({ center: lngLat, zoom });
+        map.getSource(CLUSTER_SOURCE).getClusterExpansionZoom(clusterId, async (error, zoom) => {
+            if (error) return;
+            if (zoom > LIST_CLUSTER_ZOOM) {
+                const merged = (marker.absorbed || []).map(each => chargersById.get(each.chargerId)).filter(Boolean);
+                showChargerList('Chargers here', [...await clusterLeaves(map, clusterId), ...merged]);
+            } else {
+                map.easeTo({ center: lngLat, zoom });
+            }
         });
     });
-    return new mapboxgl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+    const marker = new mapboxgl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+    marker.clusterId = clusterId;
+    marker.chargerCount = count;
+    return marker;
+}
+
+const OVERLAP_PADDING = 2;
+const LABEL_PLACES = ['top', 'bottom', 'right', 'left'];
+const LABEL_ANGLES = [Math.PI / 4, -Math.PI / 4, (3 * Math.PI) / 4, (-3 * Math.PI) / 4, Math.PI / 2, -Math.PI / 2, 0, Math.PI];
+
+function overlaps(a, b) {
+    return a.left + OVERLAP_PADDING < b.right && b.left + OVERLAP_PADDING < a.right
+        && a.top + OVERLAP_PADDING < b.bottom && b.top + OVERLAP_PADDING < a.bottom;
+}
+
+function isClear(rect, blockers) {
+    return !blockers.some(blocker => overlaps(rect, blocker));
+}
+
+// Tries the current spot first so labels don't jump around while the map moves.
+function placeWithoutOverlap(count, startIndex, apply, measure, blockers) {
+    for (let step = 0; step < count; step++) {
+        const index = (startIndex + step) % count;
+        apply(index);
+        const rect = measure();
+        if (isClear(rect, blockers)) return { index, rect };
+    }
+    return null;
+}
+
+const MAP_CHROME = '.mapboxgl-ctrl, #filter-chips .filter-chip, #map-legend, #search-area:not([hidden])';
+
+function hideItem(item) {
+    item.hidden = true;
+    item.el.style.visibility = 'hidden';
+}
+
+// Overlapping chargers fold into the marker already drawn there: groups count them, pins list them.
+function mergeOverlappingChargers(items) {
+    const placed = [];
+    const ordered = items.filter(item => !item.hidden)
+        .sort((a, b) => (b.marker.clusterId !== undefined) - (a.marker.clusterId !== undefined) || b.marker.chargerCount - a.marker.chargerCount);
+    for (const item of ordered) {
+        const host = placed.find(each => overlaps(each.rect, item.rect));
+        if (host) {
+            hideItem(item);
+            host.merged.push(item.marker);
+        } else {
+            item.merged = [];
+            placed.push(item);
+        }
+    }
+    for (const item of placed) {
+        const { marker, el, merged } = item;
+        const extra = merged.reduce((sum, each) => sum + each.chargerCount, 0);
+        if (marker.clusterId !== undefined) {
+            const total = marker.chargerCount + extra;
+            el.textContent = total;
+            el.setAttribute('aria-label', `${total} chargers here. Zoom in`);
+            marker.absorbed = merged;
+        } else {
+            if (extra && !el.querySelector('.anchor-badge')) el.append(anchorBadge(marker, 'Chargers here'));
+            marker.absorbed = [marker, ...merged];
+            updateAnchorBadge(marker, extra ? 1 + extra : 0);
+        }
+    }
+    return placed;
+}
+
+function layoutOverlays() {
+    const blockers = [...document.querySelectorAll(MAP_CHROME)]
+        .map(el => el.getBoundingClientRect())
+        .filter(rect => rect.width && rect.height);
+    const items = [...markers.values()].map(marker => {
+        const el = marker.getElement();
+        el.style.visibility = '';
+        const item = { marker, el, rect: el.getBoundingClientRect(), hidden: false };
+        if (!isClear(item.rect, blockers)) hideItem(item);
+        return item;
+    });
+
+    for (const anchor of [propertyMarker, searchedLocationMarker]) {
+        if (!anchor) continue;
+        const el = anchor.getElement();
+        el.style.visibility = '';
+        const pin = el.querySelector('.property-pin') || el.querySelector('svg') || el;
+        const pinRect = pin.getBoundingClientRect();
+        if (anchor === searchedLocationMarker && propertyMarker && overlaps(pinRect,
+            propertyMarker.getElement().querySelector('.property-pin').getBoundingClientRect())) {
+            el.style.visibility = 'hidden';
+            continue;
+        }
+        const absorbed = items.filter(item => !item.hidden && overlaps(pinRect, item.rect));
+        absorbed.forEach(hideItem);
+        anchor.absorbed = absorbed.map(item => item.marker);
+        updateAnchorBadge(anchor, absorbed.reduce((sum, item) => sum + item.marker.chargerCount, 0));
+        blockers.push(pinRect);
+        const badge = el.querySelector('.anchor-badge:not([hidden])');
+        if (badge) blockers.push(badge.getBoundingClientRect());
+    }
+    mergeOverlappingChargers(items).forEach(item => blockers.push(item.el.getBoundingClientRect()));
+
+    const label = propertyMarker?.getElement().querySelector('.property-label');
+    if (label) {
+        label.style.visibility = '';
+        const start = Math.max(0, LABEL_PLACES.indexOf(label.dataset.place));
+        const placed = placeWithoutOverlap(LABEL_PLACES.length, start,
+            index => { label.dataset.place = LABEL_PLACES[index]; },
+            () => label.getBoundingClientRect(), blockers);
+        if (placed) blockers.push(placed.rect);
+        else label.style.visibility = 'hidden';
+    }
+
+    if (walkingLabel) {
+        const { marker, center, miles } = walkingLabel;
+        const el = marker.getElement();
+        el.style.visibility = '';
+        const placed = placeWithoutOverlap(LABEL_ANGLES.length, walkingLabel.index,
+            index => marker.setLngLat(circleOffset(center, miles, LABEL_ANGLES[index])),
+            () => el.getBoundingClientRect(), blockers);
+        if (placed) walkingLabel.index = placed.index;
+        else el.style.visibility = 'hidden';
+    }
 }
 
 function syncMarkers(map) {
@@ -553,6 +782,7 @@ function syncMarkers(map) {
         if (!visible.has(key)) marker.remove();
     });
     markers = visible;
+    layoutOverlays();
 }
 
 export function addChargersToMap(chargers, center) {
