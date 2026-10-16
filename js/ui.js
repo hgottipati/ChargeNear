@@ -1,263 +1,167 @@
 import { getChargers, getAddressSuggestions } from './api.js';
-import { currentLocationCoords, getCurrentLocation } from './location.js';
-import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
+import { searchCenter, searchLocation, setLoading } from './location.js';
+import { addChargersToMap, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
+import { getActiveFilters, countActiveFilters, getSelectedRadius } from './filters.js';
+import { showToast } from './toast.js';
 
-console.log('ui.js module loaded');
+const SELECT_ALL_GROUPS = [
+    { selectAll: 'selectAllChargerTypes', children: '.charger-type-child' },
+    { selectAll: 'selectAllNetwork', children: '.network-child' },
+    { selectAll: 'selectAllStatus', children: '.status-child' },
+    { selectAll: 'selectAllPower', children: '.power-child' }
+];
 
-export async function locateUser() {
-    console.log("Locating user...");
-    const loading = document.getElementById("loading");
-    if (loading) loading.style.display = "block";
+function setupSearch() {
+    const form = document.getElementById('search-form');
+    const input = document.getElementById('address');
+    const button = document.getElementById('search-button');
+    const datalist = document.getElementById('address-suggestions');
 
-    try {
-        const coords = await getCurrentLocation();
-        currentLocationCoords.lat = coords.lat;
-        currentLocationCoords.lon = coords.lon;
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        button.disabled = true;
+        button.classList.add('is-loading');
+        try {
+            await searchLocation(input.value);
+            input.blur();
+        } finally {
+            button.disabled = false;
+            button.classList.remove('is-loading');
+        }
+    });
 
-        const map = await getMap();
-        map.jumpTo({ center: [coords.lon, coords.lat], zoom: 14 });
-
-        addCurrentLocationMarker(coords.lat, coords.lon);
-    } catch (error) {
-        console.error("Failed to locate user:", error.userMessage || error.message);
-        alert(error.userMessage || "Could not get your location.");
-    } finally {
-        if (loading) loading.style.display = "none";
-    }
+    let debounce;
+    input.addEventListener('input', () => {
+        clearTimeout(debounce);
+        const query = input.value.trim();
+        if (query.length < 3) return;
+        debounce = setTimeout(async () => {
+            try {
+                const suggestions = await getAddressSuggestions(query);
+                datalist.replaceChildren(...suggestions.map(value => Object.assign(document.createElement('option'), { value })));
+            } catch {
+                // Suggestions are optional; the search itself still works.
+            }
+        }, 250);
+    });
 }
 
-export function setupUI(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
-    const addressInput = document.getElementById("address");
-    const distanceSelect = document.getElementById("distance");
-    const filterButton = document.getElementById("filter-button");
-    const filterModal = document.getElementById("filter-modal");
-    const closeButton = document.querySelector(".close-button");
-    const applyFiltersButton = document.getElementById("apply-filters");
-    const resetFiltersButton = document.getElementById("reset-filters");
-    
-    console.log('UI Setup - Filter button found:', !!filterButton);
-    console.log('UI Setup - Filter modal found:', !!filterModal);
-
-    // Hide the distance dropdown since we no longer need it
-    if (distanceSelect) {
-        distanceSelect.style.display = 'none';
+function updateFilterBadges() {
+    const badge = document.getElementById('filter-count');
+    if (badge) {
+        const count = countActiveFilters();
+        badge.textContent = count;
+        badge.hidden = count === 0;
     }
 
-    // Filter Modal Controls
-    filterButton.addEventListener("click", () => {
-        console.log('Filter button clicked');
-        filterModal.style.display = "flex";
-        
-        // Set up nearby radius event listeners after modal is shown
-        setTimeout(() => {
-            console.log('Setting up nearby radius listeners...');
-            const nearbyRadiusInputs = filterModal.querySelectorAll('input[name="nearbyRadius"]');
-            console.log('Found nearby radius inputs:', nearbyRadiusInputs.length);
-            console.log('Filter modal HTML:', filterModal.innerHTML.substring(0, 500));
-            nearbyRadiusInputs.forEach((input, index) => {
-                console.log(`Setting up listener for input ${index}:`, input.id, input.value);
-                // Remove any existing listeners to avoid duplicates
-                input.removeEventListener('change', handleNearbyRadiusChange);
-                input.addEventListener('change', handleNearbyRadiusChange);
-            });
-        }, 100);
-    });
-
-    closeButton.addEventListener("click", () => {
-        filterModal.style.display = "none";
-    });
-
-    // Close modal when clicking outside
-    window.addEventListener("click", (event) => {
-        if (event.target === filterModal) {
-            filterModal.style.display = "none";
+    document.querySelectorAll('.filter-section').forEach(section => {
+        const counter = section.querySelector('.section-count');
+        if (!counter) return;
+        const checked = section.querySelectorAll('.section-content input[type="checkbox"]:not([id^="selectAll"]):checked').length;
+        const radio = section.querySelector('input[type="radio"]:checked');
+        if (radio) {
+            counter.textContent = radio.value === 'none' ? '' : radio.closest('label').dataset.short;
+        } else {
+            counter.textContent = checked ? `${checked} on` : '';
         }
     });
+}
 
-    // Reset filters
-    resetFiltersButton.addEventListener("click", () => {
-        const checkboxes = filterModal.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
+function syncSelectAll() {
+    SELECT_ALL_GROUPS.forEach(({ selectAll, children }) => {
+        const parent = document.getElementById(selectAll);
+        const items = [...document.querySelectorAll(children)];
+        if (!parent || items.length === 0) return;
+        const checkedCount = items.filter(item => item.checked).length;
+        parent.checked = checkedCount === items.length;
+        parent.indeterminate = checkedCount > 0 && checkedCount < items.length;
+    });
+}
+
+function setupFilters() {
+    const modal = document.getElementById('filter-modal');
+    const panel = modal.querySelector('.filter-panel');
+
+    const open = () => {
+        syncSelectAll();
+        updateFilterBadges();
+        modal.classList.add('is-open');
+        panel.querySelector('button')?.focus();
+    };
+    const close = () => modal.classList.remove('is-open');
+
+    document.addEventListener('chargenear:open-filters', open);
+    document.addEventListener('chargenear:filters-changed', updateFilterBadges);
+    document.getElementById('close-filters').addEventListener('click', close);
+    modal.addEventListener('click', event => {
+        if (event.target === modal) close();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) close();
+    });
+
+    modal.querySelectorAll('.section-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const section = header.closest('.filter-section');
+            const collapsed = section.classList.toggle('collapsed');
+            header.setAttribute('aria-expanded', String(!collapsed));
         });
-        // Keep operational only checked by default
-        document.getElementById("operationalOnly").checked = true;
-        
-        // Reset nearby radius to "No circle"
-        const nearbyNoneRadio = document.getElementById("nearbyNone");
-        if (nearbyNoneRadio) {
-            nearbyNoneRadio.checked = true;
-        }
-        
-        // Remove nearby circle
-        removeNearbyCircle();
     });
 
-    // Apply filters
-    applyFiltersButton.addEventListener("click", () => {
-        filterModal.style.display = "none";
-        updateChargers();
-    });
-    
-    // Handler function for nearby radius changes
-    function handleNearbyRadiusChange(event) {
-        console.log('Nearby radius changed to:', event.target.value);
-        updateNearbyRadius();
-    }
-
-    // Address input suggestions
-    addressInput.addEventListener("input", async () => {
-        const query = addressInput.value;
-        if (query.length < 3) return;
-        const suggestions = await getAddressSuggestions(query);
-        const datalist = document.createElement('datalist');
-        datalist.id = 'address-suggestions';
-        datalist.innerHTML = suggestions.map(s => `<option value="${s}">`).join("");
-        addressInput.setAttribute('list', 'address-suggestions');
-        if (document.getElementById('address-suggestions')) {
-            document.getElementById('address-suggestions').remove();
-        }
-        document.body.appendChild(datalist);
-    });
-
-    // Search on Enter key press
-    addressInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker);
-        }
-    });
-
-    // Optional: Search on blur for mobile
-    addressInput.addEventListener('blur', () => {
-        if (addressInput.value.trim()) {
-            showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker);
-        }
-    });
-
-    // Function to update nearby radius circle
-    const updateNearbyRadius = async () => {
-        const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
-        console.log('updateNearbyRadius called with selectedRadius:', selectedRadius);
-        
-        try {
-            const map = await getMap();
-            let lat, lon;
-
-            if (currentLocationCoords.lat && currentLocationCoords.lon && (!addressInput.value || addressInput.value.toLowerCase() === "current location")) {
-                lat = currentLocationCoords.lat;
-                lon = currentLocationCoords.lon;
-            } else if (addressInput.value) {
-                try {
-                    if (typeof window.MAPBOX_TOKEN === 'undefined') {
-                        console.error("Mapbox token is not defined");
-                        throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
-                    }
-                    
-                    const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addressInput.value)}.json?access_token=${window.MAPBOX_TOKEN}`);
-                    const data = await response.json();
-                    console.log("Geocoding response:", data);
-                    
-                    if (!data.features || data.features.length === 0) {
-                        console.warn("No features found in geocoding response");
-                        [lon, lat] = map.getCenter().toArray();
-                    } else {
-                        [lon, lat] = data.features[0].center;
-                    }
-                } catch (error) {
-                    console.error("Error geocoding address:", error);
-                    [lon, lat] = map.getCenter().toArray();
-                }
-            } else {
-                [lon, lat] = map.getCenter().toArray();
-            }
-
-            updateNearbyCircle([lon, lat], selectedRadius);
-        } catch (error) {
-            console.error("Error updating nearby radius:", error.message);
-        }
-    };
-
-    // Function to update chargers based on filter changes
-    const updateChargers = async () => {
-        const fastOnly = document.getElementById("fastOnly").checked;
-        const level2Only = document.getElementById("level2Only").checked;
-        const teslaSupercharger = document.getElementById("teslaSupercharger").checked;
-        const teslaDestination = document.getElementById("teslaDestination").checked;
-        const chargepointOnly = document.getElementById("chargepointOnly").checked;
-        const electrifyAmerica = document.getElementById("electrifyAmerica").checked;
-        const evgo = document.getElementById("evgo").checked;
-        const blink = document.getElementById("blink").checked;
-        const operationalOnly = document.getElementById("operationalOnly").checked;
-        const highPower = document.getElementById("highPower").checked;
-        const mediumPower = document.getElementById("mediumPower").checked;
-        const lowPower = document.getElementById("lowPower").checked;
-
-        try {
-            // Wait for the map to be ready
-            await new Promise((resolve) => {
-                const checkMapReady = () => {
-                    if (window.isMapReady) {
-                        resolve();
-                    } else {
-                        setTimeout(checkMapReady, 100);
-                    }
-                };
-                checkMapReady();
+    SELECT_ALL_GROUPS.forEach(({ selectAll, children }) => {
+        document.getElementById(selectAll)?.addEventListener('change', event => {
+            document.querySelectorAll(children).forEach(child => {
+                child.checked = event.target.checked;
             });
+            updateFilterBadges();
+        });
+    });
 
-            const map = await getMap();
-            let lat, lon;
+    modal.addEventListener('change', () => {
+        syncSelectAll();
+        updateFilterBadges();
+    });
 
-            if (currentLocationCoords.lat && currentLocationCoords.lon && (!addressInput.value || addressInput.value.toLowerCase() === "current location")) {
-                lat = currentLocationCoords.lat;
-                lon = currentLocationCoords.lon;
-            } else if (addressInput.value) {
-                try {
-                    if (typeof window.MAPBOX_TOKEN === 'undefined') {
-                        console.error("Mapbox token is not defined");
-                        throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
-                    }
-                    
-                    const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addressInput.value)}.json?access_token=${window.MAPBOX_TOKEN}`);
-                    const data = await response.json();
-                    console.log("Geocoding response:", data);
-                    
-                    if (!data.features || data.features.length === 0) {
-                        console.warn("No features found in geocoding response");
-                        [lon, lat] = map.getCenter().toArray();
-                    } else {
-                        [lon, lat] = data.features[0].center;
-                    }
-                } catch (error) {
-                    console.error("Error geocoding address:", error);
-                    [lon, lat] = map.getCenter().toArray();
-                }
-            } else {
-                [lon, lat] = map.getCenter().toArray();
-            }
+    document.getElementById('reset-filters').addEventListener('click', () => {
+        modal.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+            checkbox.indeterminate = false;
+        });
+        document.getElementById('operationalOnly').checked = true;
+        document.getElementById('nearbyNone').checked = true;
+        syncSelectAll();
+        updateFilterBadges();
+    });
 
-            const chargers = await getChargers(lat, lon, {
-                fastOnly,
-                level2Only,
-                teslaSupercharger,
-                teslaDestination,
-                chargepointOnly,
-                electrifyAmerica,
-                evgo,
-                blink,
-                operationalOnly,
-                highPower,
-                mediumPower,
-                lowPower
-            });
+    document.getElementById('apply-filters').addEventListener('click', async () => {
+        close();
+        updateFilterBadges();
+        setLoading(true);
+        try {
+            const { lat, lon } = searchCenter;
+            const chargers = await getChargers(lat, lon, getActiveFilters());
             addChargersToMap(chargers, [lon, lat]);
-            
-            // Update nearby radius circle after updating chargers
-            updateNearbyRadius();
+            if (chargers.length === 0) {
+                showToast('No chargers match these filters nearby.', 'info');
+            }
+            const radius = getSelectedRadius();
+            if (radius === 'none') {
+                await removeNearbyCircle();
+            } else {
+                await updateNearbyCircle([lon, lat], radius);
+            }
         } catch (error) {
-            console.error("Error updating charger filters:", error.message);
-            alert("Error updating map: " + error.message);
+            console.error('Error applying filters:', error);
+            showToast("Couldn't update chargers. Please try again.", 'error');
+        } finally {
+            setLoading(false);
         }
-    };
+    });
+
+    updateFilterBadges();
+}
+
+export function setupUI() {
+    setupSearch();
+    setupFilters();
 }

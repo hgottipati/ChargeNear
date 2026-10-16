@@ -25,21 +25,10 @@ export class CustomPopup {
         
         // Add close button
         const closeButton = document.createElement('button');
-        closeButton.className = 'custom-popup-close';
-        closeButton.innerHTML = '×';
-        closeButton.style.cssText = `
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: #5d6d7e;
-            cursor: pointer;
-            padding: 4px;
-            line-height: 1;
-            z-index: 1;
-        `;
+        closeButton.type = 'button';
+        closeButton.className = 'icon-button custom-popup-close';
+        closeButton.setAttribute('aria-label', 'Close details');
+        closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         closeButton.onclick = () => this.close();
 
         // Create main content container
@@ -113,14 +102,14 @@ export class CustomPopup {
 
     applyStyle() {
         this.isMobile = this.checkIfMobile();
-        const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
+        const headerHeight = document.querySelector('.site-header')?.offsetHeight || 0;
         
         // Base styles for both mobile and desktop
         let baseStyles = `
             position: fixed;
             background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
+            box-shadow: 0 4px 16px rgba(0, 36, 63, 0.18);
+            z-index: 1500;
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
@@ -162,7 +151,8 @@ export class CustomPopup {
                 top: ${headerHeight + 20}px;
                 left: 20px;
                 width: 400px;
-                border-radius: 8px;
+                max-height: calc(100vh - ${headerHeight + 40}px);
+                border-radius: 16px;
                 transform: translateX(-120%);
             `;
             
@@ -176,7 +166,6 @@ export class CustomPopup {
         const content = this.container.querySelector('.custom-popup-content');
         content.style.cssText = `
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         `;

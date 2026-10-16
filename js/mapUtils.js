@@ -1,15 +1,36 @@
 import { getChargers } from './api.js';
-import { getCurrentLocation, currentLocationCoords } from './location.js';
+import { locateUser } from './location.js';
 import { CustomPopup } from './customPopup.js';
+import { getActiveFilters, getSelectedRadius } from './filters.js';
+import { showToast } from './toast.js';
 
-let mapInstance = null;
-let mapReadyPromise = null;
 export let markers = [];
 export let currentLocationMarker = null;
 export let searchedLocationMarker = null;
 let currentPopup = null;
-let nearbyCircle = null;
-let nearbyCircleSource = null;
+let walkingTimeMarkers = [];
+
+const MARKER_COLORS = {
+    operational: '#16a34a',
+    highPower: '#f59e0b',
+    offline: '#94a3b8'
+};
+
+const KEEP_UPPERCASE = new Set(['EV', 'DC', 'CC', 'UW', 'UWB', 'USA', 'LLC', 'NE', 'NW', 'SE', 'SW', 'II', 'III', 'HQ', 'REI', 'QFC', 'YMCA']);
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+}
+
+function tidyName(name) {
+    if (!name || /[a-z]/.test(name)) return name;
+    return name.split(/(\s+|-|\/)/).map(word => {
+        if (KEEP_UPPERCASE.has(word) || !/[A-Z]/.test(word)) return word;
+        return word.charAt(0) + word.slice(1).toLowerCase();
+    }).join('');
+}
 
 class MapManager {
     constructor() {
@@ -20,1070 +41,369 @@ class MapManager {
         });
     }
 
-    async initMap(lat, lon) {
-        try {
-            console.log(`Initializing map at lat: ${lat}, lon: ${lon}`);
-            
-            // Check if MAPBOX_TOKEN is available
-            if (typeof window.MAPBOX_TOKEN === 'undefined') {
-                throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
-            }
-            
-            // Initialize Mapbox map
-            mapboxgl.accessToken = window.MAPBOX_TOKEN;
-            console.log("Setting mapboxgl.accessToken");
-            
-            this.map = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/mapbox/streets-v12',
-                center: [lon, lat],
-                zoom: 14
-            });
-
-            // Create a reference to this MapManager instance
-            const that = this;
-
-            // Set up map load handler
-            this.map.on('load', () => {
-                console.log("Map loaded successfully");
-                window.isMapReady = true;
-                that.resolveReady(that.map);
-            });
-
-            this.map.on('error', (error) => {
-                console.error("Mapbox error:", error);
-                this.rejectReady(new Error("Failed to load map: " + error.message));
-            });
-
-            // Add map controls
-            this.map.addControl(new mapboxgl.NavigationControl());
-            this.map.addControl(new StyleToggleControl(), 'top-right');
-            this.map.addControl(new GeolocationControl(), 'top-right');
-
-            // When the map style changes, we need to reload the markers
-            this.map.on('custom-style-changed', async () => {
-                try {
-                    // Re-add markers after style change
-                    markers.forEach(marker => marker.addTo(this.map));
-                    
-                    // Re-add current location marker if it exists
-                    if (currentLocationCoords.lat && currentLocationCoords.lon) {
-                        addCurrentLocationMarker(currentLocationCoords.lat, currentLocationCoords.lon);
-                    }
-                    
-                    // Re-add searched location marker if it exists
-                    if (searchedLocationMarker) {
-                        searchedLocationMarker.addTo(this.map);
-                    }
-                    
-                    // Re-add nearby circle if it exists
-                    const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
-                    if (selectedRadius && selectedRadius !== 'none') {
-                        const center = this.map.getCenter().toArray();
-                        updateNearbyCircle(center, selectedRadius);
-                    }
-                } catch (error) {
-                    console.error("Error reloading markers after style change:", error);
-                }
-            });
-
-            this.map.on('moveend', async () => {
-                const map = await this.getMap();
-                const center = map.getCenter();
-                
-                // Get all filter states
-                const filters = {
-                    fastOnly: document.getElementById("fastOnly")?.checked || false,
-                    level2Only: document.getElementById("level2Only")?.checked || false,
-                    teslaSupercharger: document.getElementById("teslaSupercharger")?.checked || false,
-                    teslaDestination: document.getElementById("teslaDestination")?.checked || false,
-                    chargepointOnly: document.getElementById("chargepointOnly")?.checked || false,
-                    electrifyAmerica: document.getElementById("electrifyAmerica")?.checked || false,
-                    evgo: document.getElementById("evgo")?.checked || false,
-                    blink: document.getElementById("blink")?.checked || false,
-                    operationalOnly: document.getElementById("operationalOnly")?.checked || false,
-                    highPower: document.getElementById("highPower")?.checked || false,
-                    mediumPower: document.getElementById("mediumPower")?.checked || false,
-                    lowPower: document.getElementById("lowPower")?.checked || false
-                };
-                
-                try {
-                    // Always fetch chargers, but pass the filters
-                    const chargers = await getChargers(center.lat, center.lng, filters);
-                    addChargersToMap(chargers, [center.lng, center.lat]);
-                } catch (error) {
-                    console.error("Error fetching chargers on map move:", error.message);
-                }
-            });
-        } catch (error) {
-            console.error("Error initializing map:", error.message);
-            alert("Error initializing map: " + error.message);
-            this.rejectReady(error);
+    initMap(lat, lon, zoom = 13) {
+        if (this.map) {
+            this.map.jumpTo({ center: [lon, lat], zoom });
+            return this.readyPromise;
         }
+
+        mapboxgl.accessToken = window.MAPBOX_TOKEN;
+
+        this.map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [lon, lat],
+            zoom,
+            customAttribution: 'Charger data © <a href="https://openchargemap.org" target="_blank" rel="noopener">Open Charge Map</a>'
+        });
+
+        this.map.on('load', () => {
+            window.isMapReady = true;
+            this.resolveReady(this.map);
+        });
+
+        this.map.on('error', event => {
+            console.error('Mapbox error:', event.error || event);
+        });
+
+        this.map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+        this.map.addControl(new GeolocationControl(), 'top-right');
+        this.map.addControl(new StyleToggleControl(), 'top-right');
+        this.map.addControl(new FilterControl(), 'top-right');
+
+        this.map.on('custom-style-changed', () => {
+            const radius = getSelectedRadius();
+            if (radius !== 'none') {
+                updateNearbyCircle(this.map.getCenter().toArray(), radius);
+            }
+        });
+
+        this.map.on('moveend', async () => {
+            const center = this.map.getCenter();
+            try {
+                const chargers = await getChargers(center.lat, center.lng, getActiveFilters());
+                addChargersToMap(chargers, [center.lng, center.lat]);
+            } catch (error) {
+                console.error('Error fetching chargers on map move:', error.message);
+            }
+        });
+
+        return this.readyPromise;
     }
 
-    async getMap() {
-        if (this.map) {
-            return this.map;
-        } else {
-            try {
-                console.log("Waiting for map to be ready...");
-                return await this.readyPromise;
-            } catch (error) {
-                console.error("Error getting map:", error);
-                return null;
-            }
-        }
+    getMap() {
+        return this.map ? Promise.resolve(this.map) : this.readyPromise;
     }
 }
 
 const mapManager = new MapManager();
 
-// Export the async function to get the map
 export async function getMap() {
-    try {
-        const map = await mapManager.getMap();
-        if (!map) {
-            console.error("Map instance is null or undefined");
-        }
-        return map;
-    } catch (error) {
-        console.error("Error getting map:", error);
-        return null;
-    }
+    return mapManager.getMap();
 }
 
-// Make getMap available globally
 window.getMap = getMap;
 
-// Export the initMap function
-export async function initMap(lat, lon) {
-    try {
-        console.log(`Initializing map at [${lat}, ${lon}]`);
-        await mapManager.initMap(lat, lon);
-        return mapManager.getMap();
-    } catch (error) {
-        console.error("Error initializing map:", error);
-        throw error;
-    }
+export function initMap(lat, lon, zoom) {
+    return mapManager.initMap(lat, lon, zoom);
 }
 
-export class GeolocationControl {
-    constructor() {}
+function controlButton(title, svg) {
+    const container = document.createElement('div');
+    container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'map-ctrl-button';
+    button.title = title;
+    button.setAttribute('aria-label', title);
+    button.innerHTML = svg;
+    container.appendChild(button);
+    return { container, button };
+}
 
-    onAdd(map) {
-        this._map = map;
-        this._container = document.createElement('div');
-        this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-        this._container.innerHTML = `
-            <button class="mapboxgl-ctrl-icon" title="Get Current Location" style="background: white; border: none; padding: 0;">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                </svg>
-            </button>
-        `;
-        this._container.onclick = async () => {
-            try {
-                console.log("GeolocationControl: Requesting current location...");
-                const { lat, lon } = await getCurrentLocation();
-                console.log(`GeolocationControl: Got location [${lat}, ${lon}]`);
-                
-                currentLocationCoords.lat = lat;
-                currentLocationCoords.lon = lon;
-                
-                const map = await getMap();
-                if (!map) {
-                    throw new Error("Map not available");
-                }
-                
-                map.jumpTo({ center: [lon, lat], zoom: 14 });
-                addCurrentLocationMarker(lat, lon);
-                
-                // Safely get checkbox states
-                const fastOnly = document.getElementById("fastOnly")?.checked || false;
-                const teslaSupercharger = document.getElementById("teslaSupercharger")?.checked || false;
-                const teslaDestination = document.getElementById("teslaDestination")?.checked || false;
-                const chargepointOnly = document.getElementById("chargepointOnly")?.checked || false;
-                
-                console.log(`GeolocationControl: Fetching chargers for [${lat}, ${lon}], fastOnly: ${fastOnly}, teslaSupercharger: ${teslaSupercharger}, teslaDestination: ${teslaDestination}, chargepointOnly: ${chargepointOnly}`);
-                const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
-                console.log(`GeolocationControl: Fetched ${chargers.length} chargers`);
-                
-                addChargersToMap(chargers, [lon, lat]);
-                document.getElementById("address").value = "Current Location";
-            } catch (error) {
-                console.error("GeolocationControl error:", error);
-                alert("Failed to get current location: " + (error.userMessage || error.message));
-            }
-        };
-        return this._container;
+const ICON_ATTRS = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+
+const ICONS = {
+    locate: `<svg ${ICON_ATTRS}><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>`,
+    satellite: `<svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+    streets: `<svg ${ICON_ATTRS}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>`,
+    filter: `<svg ${ICON_ATTRS}><path d="M4 4h16l-6.5 8.5v5a1.5 1.5 0 0 1-3 0v-5L4 4z"/></svg>`
+};
+
+class GeolocationControl {
+    onAdd() {
+        const { container, button } = controlButton('Show my location', ICONS.locate);
+        button.addEventListener('click', () => locateUser());
+        this._container = container;
+        return container;
     }
 
     onRemove() {
-        this._container.parentNode.removeChild(this._container);
-        this._map = undefined;
+        this._container.remove();
+    }
+}
+
+class FilterControl {
+    onAdd() {
+        const { container, button } = controlButton('Filter chargers', ICONS.filter);
+        button.id = 'filter-button';
+        const badge = document.createElement('span');
+        badge.className = 'filter-count';
+        badge.id = 'filter-count';
+        badge.hidden = true;
+        button.appendChild(badge);
+        button.addEventListener('click', () => document.dispatchEvent(new CustomEvent('chargenear:open-filters')));
+        this._container = container;
+        setTimeout(() => document.dispatchEvent(new CustomEvent('chargenear:filters-changed')));
+        return container;
+    }
+
+    onRemove() {
+        this._container.remove();
+    }
+}
+
+class StyleToggleControl {
+    onAdd(map) {
+        const { container, button } = controlButton('Switch to satellite view', ICONS.satellite);
+        let satellite = false;
+        button.addEventListener('click', () => {
+            satellite = !satellite;
+            map.setStyle(satellite ? 'mapbox://styles/mapbox/satellite-streets-v12' : 'mapbox://styles/mapbox/streets-v12');
+            const title = satellite ? 'Switch to street view' : 'Switch to satellite view';
+            button.title = title;
+            button.setAttribute('aria-label', title);
+            button.innerHTML = satellite ? ICONS.streets : ICONS.satellite;
+            map.once('style.load', () => map.fire('custom-style-changed'));
+        });
+        this._container = container;
+        return container;
+    }
+
+    onRemove() {
+        this._container.remove();
     }
 }
 
 export function addCurrentLocationMarker(lat, lon) {
-    if (currentLocationMarker) {
-        currentLocationMarker.remove();
-    }
+    if (currentLocationMarker) currentLocationMarker.remove();
 
     const el = document.createElement('div');
-    el.style.backgroundColor = '#4285F4';
-    el.style.width = '12px';
-    el.style.height = '12px';
-    el.style.borderRadius = '50%';
-    el.style.border = '2px solid white';
-    el.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
+    el.className = 'current-location-dot';
+    el.title = 'Your location';
 
     getMap().then(map => {
         currentLocationMarker = new mapboxgl.Marker({ element: el })
             .setLngLat([lon, lat])
             .addTo(map);
-    }).catch(error => {
-        console.error("Error adding current location marker:", error.message);
     });
 }
 
-export function addSearchedLocationMarker(lat, lon, address) {
-    if (searchedLocationMarker) {
-        searchedLocationMarker.remove();
-    }
-
-    const el = document.createElement('div');
-    el.style.width = '30px';
-    el.style.height = '40px';
-    el.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
-            <path d="M12 0C5.373 0 0 5.373 0 12c0 8.013 10.432 21.666 11.15 22.62.37.5.92.5 1.29 0C13.568 33.666 24 20.013 24 12 24 5.373 18.627 0 12 0z" fill="#FF0000"/>
-            <circle cx="12" cy="12" r="4" fill="#FFFFFF"/>
-        </svg>
-    `) + '")';
-    el.style.backgroundSize = 'contain';
-    el.style.backgroundRepeat = 'no-repeat';
-    el.style.cursor = 'pointer';
-    el.style.transform = 'translate(-50%, -100%)';
+export function addSearchedLocationMarker(lat, lon, label) {
+    if (searchedLocationMarker) searchedLocationMarker.remove();
 
     getMap().then(map => {
-        searchedLocationMarker = new mapboxgl.Marker({ element: el })
+        searchedLocationMarker = new mapboxgl.Marker({ color: '#00355F' })
             .setLngLat([lon, lat])
-            .setPopup(new mapboxgl.Popup().setHTML(`<h3>${address}</h3>`))
+            .setPopup(new mapboxgl.Popup({ offset: 30 }).setHTML(`<strong>${escapeHtml(label)}</strong>`))
             .addTo(map);
-    }).catch(error => {
-        console.error("Error adding searched location marker:", error.message);
     });
 }
 
-// Function to create a circle around a point
+const RADIUS_OPTIONS = {
+    '5min': { miles: 0.25, label: '5 min walk' },
+    '15min': { miles: 0.75, label: '15 min walk' },
+    '1mile': { miles: 1.0, label: '20 min walk' }
+};
+
+function circleOffset(center, radiusInMiles, angle) {
+    const latDegrees = radiusInMiles / 69;
+    const lngDegrees = radiusInMiles / (69 * Math.cos(center[1] * Math.PI / 180));
+    return [center[0] + lngDegrees * Math.sin(angle), center[1] + latDegrees * Math.cos(angle)];
+}
+
 function createCircle(center, radiusInMiles) {
-    console.log('Creating circle with center:', center, 'radius:', radiusInMiles, 'miles');
-    
-    // Convert miles to degrees (approximate)
-    // 1 degree of latitude ≈ 69 miles
-    // 1 degree of longitude ≈ 69 * cos(latitude) miles
-    const latDegreesPerMile = 1 / 69;
-    const lngDegreesPerMile = 1 / (69 * Math.cos(center[1] * Math.PI / 180));
-    
-    const radiusInLatDegrees = radiusInMiles * latDegreesPerMile;
-    const radiusInLngDegrees = radiusInMiles * lngDegreesPerMile;
-    
     const points = [];
     for (let i = 0; i <= 64; i++) {
-        const angle = (i / 64) * 2 * Math.PI;
-        const lat = center[1] + (radiusInLatDegrees * Math.cos(angle));
-        const lng = center[0] + (radiusInLngDegrees * Math.sin(angle));
-        points.push([lng, lat]);
+        points.push(circleOffset(center, radiusInMiles, (i / 64) * 2 * Math.PI));
     }
-    
-    console.log('Circle points range - lat:', Math.min(...points.map(p => p[1])), 'to', Math.max(...points.map(p => p[1])));
-    console.log('Circle points range - lng:', Math.min(...points.map(p => p[0])), 'to', Math.max(...points.map(p => p[0])));
-    console.log('Expected radius in degrees - lat:', radiusInLatDegrees, 'lng:', radiusInLngDegrees);
-    
     return points;
 }
 
-// Function to add or update the nearby circle
-export function updateNearbyCircle(center, radiusType) {
-    console.log('updateNearbyCircle called with center:', center, 'radiusType:', radiusType);
-    
-    if (!center || !center[0] || !center[1]) {
-        console.error("Invalid center coordinates for nearby circle:", center);
+export async function updateNearbyCircle(center, radiusType) {
+    if (!center || !center[0] || !center[1]) return;
+
+    await removeNearbyCircle();
+
+    const option = RADIUS_OPTIONS[radiusType];
+    if (!option) return;
+
+    const map = await getMap();
+    const coordinates = createCircle(center, option.miles);
+
+    map.addSource('nearby-circle', {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coordinates] }, properties: {} }
+    });
+
+    const beforeLayer = map.getLayer('waterway-label') ? 'waterway-label' : undefined;
+    map.addLayer({
+        id: 'nearby-circle-fill',
+        type: 'fill',
+        source: 'nearby-circle',
+        paint: { 'fill-color': '#EEC218', 'fill-opacity': 0.25 }
+    }, beforeLayer);
+    map.addLayer({
+        id: 'nearby-circle-border',
+        type: 'line',
+        source: 'nearby-circle',
+        paint: { 'line-color': '#00355F', 'line-width': 2, 'line-dasharray': [2, 1.5] }
+    }, beforeLayer);
+
+    const label = document.createElement('div');
+    label.className = 'walking-time-marker';
+    label.textContent = option.label;
+    walkingTimeMarkers.push(
+        new mapboxgl.Marker({ element: label, anchor: 'center' })
+            .setLngLat(circleOffset(center, option.miles, Math.PI / 4))
+            .addTo(map)
+    );
+
+    const lngs = coordinates.map(p => p[0]);
+    const lats = coordinates.map(p => p[1]);
+    map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, duration: 800 });
+}
+
+export async function removeNearbyCircle() {
+    const map = await getMap();
+    walkingTimeMarkers.forEach(marker => marker.remove());
+    walkingTimeMarkers = [];
+    if (map.getLayer('nearby-circle-fill')) map.removeLayer('nearby-circle-fill');
+    if (map.getLayer('nearby-circle-border')) map.removeLayer('nearby-circle-border');
+    if (map.getSource('nearby-circle')) map.removeSource('nearby-circle');
+}
+
+function isHighPower(charger) {
+    return (charger.Connections || []).some(conn => conn.LevelID === 3 || conn.PowerKW >= 150);
+}
+
+function markerColor(charger) {
+    if (charger.StatusType?.Title !== 'Operational') return MARKER_COLORS.offline;
+    return isHighPower(charger) ? MARKER_COLORS.highPower : MARKER_COLORS.operational;
+}
+
+function statusPill(statusTitle) {
+    if (!statusTitle) return '<span class="status-pill is-unknown">Status unknown</span>';
+    const cls = statusTitle === 'Operational' ? 'is-up' : 'is-down';
+    return `<span class="status-pill ${cls}">${escapeHtml(statusTitle)}</span>`;
+}
+
+function chargerCardHtml(charger) {
+    const { Latitude, Longitude, Title, AddressLine1, Town, StateOrProvince, Postcode } = charger.AddressInfo;
+    const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
+    const operator = charger.OperatorInfo?.Title || 'Unknown network';
+    const cost = charger.UsageCost || 'Not listed';
+    const updated = charger.DateLastStatusUpdate
+        ? new Date(charger.DateLastStatusUpdate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+        : null;
+
+    const connectors = (charger.Connections || []).map(conn => {
+        const meta = [
+            conn.PowerKW ? `${conn.PowerKW} kW` : null,
+            conn.Quantity > 1 ? `×${conn.Quantity}` : null
+        ].filter(Boolean).join(' · ');
+        return `
+            <div class="connector">
+                <span class="connector-name">${escapeHtml(conn.ConnectionType?.Title || 'Unknown connector')}</span>
+                <span class="connector-meta">${escapeHtml(meta || '—')}</span>
+            </div>`;
+    }).join('') || '<p class="charger-updated">Connector details not available.</p>';
+
+    return `
+        <div class="charger-card">
+            <div class="charger-card-header">
+                <h3>${escapeHtml(tidyName(Title) || 'EV charger')}</h3>
+                <p class="charger-operator">${escapeHtml(operator)}</p>
+                ${statusPill(charger.StatusType?.Title)}
+            </div>
+            <dl class="charger-field">
+                <dt>Address</dt>
+                <dd>${escapeHtml(address || 'Not listed')}</dd>
+                <dt>Cost</dt>
+                <dd>${escapeHtml(cost)}</dd>
+            </dl>
+            <div class="charger-connectors">
+                <h4>Connectors</h4>
+                ${connectors}
+            </div>
+            ${updated ? `<p class="charger-updated"><i class="fa-regular fa-clock"></i> Status updated ${escapeHtml(updated)}</p>` : ''}
+            <div class="charger-actions">
+                <a class="btn btn-primary" href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-diamond-turn-right"></i> Directions
+                </a>
+                <button type="button" class="btn btn-secondary" data-share-charger="${escapeHtml(charger.ID)}">
+                    <i class="fa-solid fa-share-nodes"></i> Share
+                </button>
+            </div>
+        </div>`;
+}
+
+async function shareCharger(charger) {
+    const url = new URL(window.location.origin + window.location.pathname);
+    url.searchParams.set('chargerId', charger.ID);
+    const title = tidyName(charger.AddressInfo?.Title) || 'EV charger';
+
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: `${title} · ChargeNear`, url: url.toString() });
+        } catch (error) {
+            if (error.name !== 'AbortError') console.error('Share failed:', error);
+        }
         return;
     }
 
-    // Remove existing circle if any
-    removeNearbyCircle();
-
-    // If no radius selected, don't draw anything
-    if (!radiusType || radiusType === 'none') {
-        return;
+    try {
+        await navigator.clipboard.writeText(url.toString());
+        showToast('Link copied to clipboard', 'success');
+    } catch {
+        showToast("Couldn't copy the link. Please try again.", 'error');
     }
-
-    // Convert radius type to miles - realistic walking distances
-    let radiusInMiles;
-    switch (radiusType) {
-        case '5min':
-            radiusInMiles = 0.25; // ~5 min walk (0.25 miles)
-            break;
-        case '15min':
-            radiusInMiles = 0.75; // ~15 min walk (0.75 miles)
-            break;
-        case '1mile':
-            radiusInMiles = 1.0; // 1 mile
-            break;
-        default:
-            console.warn("Unknown radius type:", radiusType);
-            return;
-    }
-
-    getMap().then(map => {
-        if (!map) {
-            console.error("Map is not available");
-            return;
-        }
-        
-        console.log('Map is available, adding circle layers...');
-
-        // Create circle coordinates
-        const circleCoordinates = createCircle(center, radiusInMiles);
-        console.log('Circle coordinates created:', circleCoordinates.length, 'points');
-        
-        // Add circle source
-        nearbyCircleSource = {
-            type: 'Feature',
-            geometry: {
-                type: 'Polygon',
-                coordinates: [circleCoordinates]
-            },
-            properties: {}
-        };
-
-        // Add the circle layer
-        map.addSource('nearby-circle', {
-            type: 'geojson',
-            data: nearbyCircleSource
-        });
-
-        map.addLayer({
-            id: 'nearby-circle-fill',
-            type: 'fill',
-            source: 'nearby-circle',
-            paint: {
-                'fill-color': '#FFD700', // Brighter gold color
-                'fill-opacity': 0.4
-            }
-        }, 'waterway-label'); // Insert before waterway labels to ensure visibility
-
-        map.addLayer({
-            id: 'nearby-circle-border',
-            type: 'line',
-            source: 'nearby-circle',
-            paint: {
-                'line-color': '#FF8C00', // Orange border for better contrast
-                'line-width': 4,
-                'line-opacity': 1.0
-            }
-        }, 'nearby-circle-fill'); // Insert after the fill layer
-
-        // Add walking time markers
-        addWalkingTimeMarkers(map, center, radiusInMiles, radiusType);
-
-        console.log(`Added nearby circle with radius ${radiusInMiles} miles around [${center[0]}, ${center[1]}]`);
-        console.log('Circle source data:', nearbyCircleSource);
-        console.log('Map layers after adding circle:', map.getStyle().layers.map(l => l.id).filter(id => id.includes('nearby')));
-        
-        // Fit the map to show the circle
-        const bounds = [
-            [Math.min(...circleCoordinates.map(p => p[0])), Math.min(...circleCoordinates.map(p => p[1]))],
-            [Math.max(...circleCoordinates.map(p => p[0])), Math.max(...circleCoordinates.map(p => p[1]))]
-        ];
-        map.fitBounds(bounds, { padding: 50, duration: 1000 });
-        console.log('Map fitted to circle bounds:', bounds);
-    }).catch(error => {
-        console.error("Error adding nearby circle:", error.message);
-    });
 }
 
-// Function to add walking time markers on the circle
-function addWalkingTimeMarkers(map, center, radiusInMiles, radiusType) {
-    // Get walking time text based on radius type
-    let walkingTimeText;
-    switch (radiusType) {
-        case '5min':
-            walkingTimeText = '5 min';
-            break;
-        case '15min':
-            walkingTimeText = '15 min';
-            break;
-        case '1mile':
-            walkingTimeText = '20 min';
-            break;
-        default:
-            walkingTimeText = '';
-    }
-
-    // Create marker element
-    const markerElement = document.createElement('div');
-    markerElement.className = 'walking-time-marker';
-    markerElement.innerHTML = `🚶 ${walkingTimeText}`;
-    markerElement.style.cssText = `
-        background: rgba(255, 140, 0, 0.9);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: bold;
-        border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        white-space: nowrap;
-        z-index: 1000;
-    `;
-
-    // Calculate position on the circle (top-right quadrant)
-    const angle = Math.PI / 4; // 45 degrees
-    const latDegreesPerMile = 1 / 69;
-    const lngDegreesPerMile = 1 / (69 * Math.cos(center[1] * Math.PI / 180));
-    
-    const radiusInLatDegrees = radiusInMiles * latDegreesPerMile;
-    const radiusInLngDegrees = radiusInMiles * lngDegreesPerMile;
-    
-    const markerLat = center[1] + (radiusInLatDegrees * Math.cos(angle));
-    const markerLng = center[0] + (radiusInLngDegrees * Math.sin(angle));
-
-    // Add marker to map
-    const marker = new mapboxgl.Marker({
-        element: markerElement,
-        anchor: 'center'
-    })
-    .setLngLat([markerLng, markerLat])
-    .addTo(map);
-
-    // Store marker reference for removal
-    if (!window.walkingTimeMarkers) {
-        window.walkingTimeMarkers = [];
-    }
-    window.walkingTimeMarkers.push(marker);
-}
-
-// Function to remove the nearby circle
-export function removeNearbyCircle() {
-    getMap().then(map => {
-        if (!map) return;
-
-        // Remove walking time markers
-        if (window.walkingTimeMarkers) {
-            window.walkingTimeMarkers.forEach(marker => marker.remove());
-            window.walkingTimeMarkers = [];
-        }
-
-        // Remove layers if they exist
-        if (map.getLayer('nearby-circle-fill')) {
-            map.removeLayer('nearby-circle-fill');
-        }
-        if (map.getLayer('nearby-circle-border')) {
-            map.removeLayer('nearby-circle-border');
-        }
-
-        // Remove source if it exists
-        if (map.getSource('nearby-circle')) {
-            map.removeSource('nearby-circle');
-        }
-
-        nearbyCircleSource = null;
-        console.log("Removed nearby circle");
-    }).catch(error => {
-        console.error("Error removing nearby circle:", error.message);
-    });
+export function openChargerDetails(charger) {
+    if (currentPopup) currentPopup.close();
+    currentPopup = new CustomPopup();
+    currentPopup.setHTML(chargerCardHtml(charger));
+    currentPopup.container.querySelector('[data-share-charger]')
+        ?.addEventListener('click', () => shareCharger(charger));
+    currentPopup.open();
 }
 
 export function addChargersToMap(chargers, center) {
-    if (!center || !center[0] || !center[1]) {
-        console.error("Invalid center coordinates for chargers:", center);
-        return;
-    }
+    if (!center || !center[0] || !center[1]) return;
 
-    console.log(`Adding ${chargers.length} chargers to map with center [${center[0]}, ${center[1]}]`);
-    // Log a sample charger to see the data structure
-    if (chargers.length > 0) {
-        console.log("Sample charger data:", chargers[0]);
-    }
-    
     markers.forEach(marker => marker.remove());
     markers = [];
 
     getMap().then(map => {
-        if (!map) {
-            console.error("Map is not available");
-            return;
-        }
-        
         chargers.forEach(charger => {
-            try {
-                // Handle both OCM API structure and our mock data
-                if (!charger.AddressInfo || !charger.AddressInfo.Latitude || !charger.AddressInfo.Longitude) {
-                    console.warn("Invalid charger data:", charger);
-                    return;
-                }
-                
-                const { Latitude, Longitude, Title, AddressLine1, Town, StateOrProvince, Postcode } = charger.AddressInfo;
-                
-                // Format the connector information
-                let connectorInfo = '<div style="margin-top: 8px;">';
-                if (charger.Connections && charger.Connections.length > 0) {
-                    charger.Connections.forEach(conn => {
-                        const connectorType = conn.ConnectionType ? conn.ConnectionType.Title : 'Unknown';
-                        const powerKW = conn.PowerKW ? `${conn.PowerKW} kW` : 'Unknown power';
-                        const quantity = conn.Quantity > 1 ? `(${conn.Quantity} available)` : '';
-                        const status = conn.StatusType ? conn.StatusType.Title : 'Unknown';
-                        const statusColor = status === 'Operational' ? '#4CAF50' : '#f44336';
-                        
-                        connectorInfo += `
-                            <div style="background: #ffffff; border-radius: 6px; padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                    <span style="font-weight: 500; color: #00355F;">${connectorType}</span>
-                                    <span style="color: ${statusColor}; font-size: 12px; font-weight: 500;">${status}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="color: #5d6d7e; font-size: 12px;">${powerKW}</span>
-                                    <span style="color: #5d6d7e; font-size: 12px;">${quantity}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    connectorInfo += '<div style="color: #5d6d7e; font-size: 13px;">Connector information not available</div>';
-                }
-                connectorInfo += '</div>';
-                
-                // Get operator information
-                const operatorName = charger.OperatorInfo ? charger.OperatorInfo.Title : 'Unknown operator';
-                
-                // Get usage cost if available
-                let usageCost = 'Cost information not available';
-                if (charger.UsageCost) {
-                    usageCost = charger.UsageCost;
-                }
-                
-                // Get status information
-                const statusTitle = charger.StatusType ? charger.StatusType.Title : 'Unknown status';
-                const isOperational = statusTitle === 'Operational';
-                const statusColor = isOperational ? '#4CAF50' : '#f44336';
-                
-                // Determine marker color
-                let markerColor = '#4CAF50'; // Default green
-                if (!isOperational) {
-                    markerColor = '#A67C52'; // Brown for not operational
-                } else {
-                    // Check for high power (Level 3 or Tesla Supercharger)
-                    let isHighPower = false;
-                    if (charger.Connections && charger.Connections.length > 0) {
-                        isHighPower = charger.Connections.some(conn => conn.LevelID === 3 || (conn.PowerKW && conn.PowerKW >= 150));
-                    }
-                    // Tesla Supercharger check
-                    const isTeslaSupercharger =
-                        charger.OperatorInfo &&
-                        charger.OperatorInfo.Title &&
-                        charger.OperatorInfo.Title.toLowerCase().includes('tesla') &&
-                        charger.Connections &&
-                        charger.Connections.some(conn => conn.ConnectionType && (
-                            conn.ConnectionType.Title === 'NACS / Tesla Supercharger' ||
-                            conn.ConnectionType.Title === 'Tesla Supercharger' ||
-                            conn.ConnectionType.Title === 'Tesla (Model S/X)'
-                        ));
-                    if (isHighPower || isTeslaSupercharger) {
-                        markerColor = '#FFB347'; // Light orange
-                    }
-                }
-                
-                // Get last updated time
-                const lastUpdated = charger.DateLastStatusUpdate ? new Date(charger.DateLastStatusUpdate).toLocaleString() : 'Unknown';
-                
-                // Format the address
-                const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
-                
-                // Create the popup HTML
-                const popupHTML = `
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; padding: 16px; background: #f0f4f8; border-radius: 8px; display: flex; flex-direction: column; gap: 16px;">
-                        <div style="border-bottom: 1px solid #e0e7f0; padding-bottom: 12px;">
-                            <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #00355F;">${Title || 'Charger'}</h3>
-                            <p style="margin: 0; font-size: 13px; color: #5d6d7e;">${operatorName}</p>
-                        </div>
-                        
-                        <div>
-                            <p style="margin: 0 0 10px 0; font-size: 13px;">
-                                <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Address</span>
-                                <span style="color: #00355F;">${address}</span>
-                            </p>
-                            <p style="margin: 0 0 10px 0; font-size: 13px;">
-                                <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Status</span>
-                                <span style="color: ${statusColor}; font-weight: 600;">${statusTitle}</span>
-                            </p>
-                            <p style="margin: 0 0 10px 0; font-size: 13px;">
-                                <span style="color: #5d6d7e; display: block; margin-bottom: 3px; font-weight: 500;">Cost</span>
-                                <span style="color: #00355F;">${usageCost}</span>
-                            </p>
-                            <p style="margin: 0; font-size: 12px; color: #5d6d7e;">
-                                <i class="fas fa-clock" style="margin-right: 4px;"></i>Last updated: ${lastUpdated}
-                            </p>
-                        </div>
+            const info = charger.AddressInfo;
+            if (!info?.Latitude || !info?.Longitude) return;
 
-                        <div style="background: #ffffff; border-radius: 6px; padding: 12px; box-shadow: 0 1px 3px rgba(0,53,95,0.05);">
-                            <p style="margin: 0 0 8px 0; font-size: 13px; color: #5d6d7e; font-weight: 500;">Connectors</p>
-                            
-                        </div>
+            const marker = new mapboxgl.Marker({ color: markerColor(charger) })
+                .setLngLat([info.Longitude, info.Latitude])
+                .addTo(map);
+            marker.chargerId = charger.ID;
 
-                        <div style="display: flex; justify-content: center;">
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" 
-                               target="_blank" 
-                               style="display: inline-flex; align-items: center; justify-content: center; background: #EEC218; color: #00355F; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(238,194,24,0.2); width: 200px;">
-                               <i class="fas fa-directions" style="margin-right: 6px;"></i>Get Directions
-                            </a>
-                        </div>
-                    </div>
-                `;
-
-                const marker = new mapboxgl.Marker({ color: markerColor })
-                    .setLngLat([Longitude, Latitude])
-                    .addTo(map);
-                
-                // Add charger ID to marker for identification
-                marker.chargerId = charger.ID;
-
-                // Add click handler for the marker
-                marker.getElement().addEventListener('click', () => {
-                    try {
-                        console.log("Marker clicked, creating popup...");
-                        // Close any existing popup
-                        if (currentPopup) {
-                            currentPopup.close();
-                            currentPopup = null;
-                        }
-
-                        // Create and show new popup
-                        currentPopup = new CustomPopup();
-                        currentPopup.setHTML(popupHTML);
-                        
-                        // Add the share functions to window scope
-                        window.toggleShareMenu = (button) => {
-                            console.log('Toggle share menu clicked');
-                            const menu = button.nextElementSibling;
-                            const isVisible = menu.style.display === 'block';
-                            
-                            // Close all other share menus first
-                            document.querySelectorAll('.share-menu').forEach(m => {
-                                if (m !== menu) m.style.display = 'none';
-                            });
-                            
-                            if (!isVisible) {
-                                console.log('Opening share menu');
-                                const rect = button.getBoundingClientRect();
-                                console.log('Button rect:', rect);
-                                const viewportHeight = window.innerHeight;
-                                const viewportWidth = window.innerWidth;
-                                
-                                // Force the menu to be visible for measurements
-                                menu.style.display = 'block';
-                                menu.style.visibility = 'hidden';
-                                menu.style.zIndex = '1000000'; // Ensure highest z-index
-                                
-                                // Check if we're on mobile
-                                const isMobile = window.innerWidth <= 768;
-                                console.log('Is mobile:', isMobile);
-                                
-                                // Reset any previous positioning
-                                menu.style.top = '';
-                                menu.style.bottom = '';
-                                menu.style.left = '';
-                                menu.style.right = '';
-                                menu.style.marginTop = '';
-                                menu.style.marginBottom = '';
-                                menu.style.marginLeft = '';
-                                menu.style.marginRight = '';
-                                menu.style.transform = '';
-                                
-                                const menuHeight = menu.offsetHeight;
-                                const menuWidth = menu.offsetWidth;
-                                
-                                if (isMobile) {
-                                    // Mobile positioning
-                                    menu.style.position = 'absolute';
-                                    menu.style.width = '100%';
-                                    
-                                    // Position above by default
-                                    menu.style.bottom = '100%';
-                                    menu.style.left = '0';
-                                    menu.style.marginBottom = '8px';
-                                    
-                                    // If not enough space above, position below
-                                    if (rect.top < menuHeight + 10) {
-                                        menu.style.bottom = 'auto';
-                                        menu.style.top = '100%';
-                                        menu.style.marginBottom = '0';
-                                        menu.style.marginTop = '8px';
-                                    }
-                                } else {
-                                    // Desktop positioning
-                                    menu.style.position = 'absolute';
-                                    menu.style.width = 'auto';
-                                    menu.style.top = '0';
-                                    menu.style.left = '100%';
-                                    menu.style.marginLeft = '8px';
-                                    
-                                    // If would go off right edge, position to the left
-                                    if (rect.right + menuWidth + 8 > viewportWidth) {
-                                        menu.style.left = 'auto';
-                                        menu.style.right = '100%';
-                                        menu.style.marginLeft = '0';
-                                        menu.style.marginRight = '8px';
-                                    }
-                                }
-                                
-                                menu.style.visibility = 'visible';
-                                console.log('Share menu positioned and shown');
-                                
-                                // Add touch event handler for mobile
-                                if (isMobile) {
-                                    const touchHandler = (e) => {
-                                        if (!menu.contains(e.target) && e.target !== button) {
-                                            menu.style.display = 'none';
-                                            document.removeEventListener('touchstart', touchHandler);
-                                        }
-                                    };
-                                    setTimeout(() => document.addEventListener('touchstart', touchHandler), 0);
-                                }
-                            } else {
-                                console.log('Closing share menu');
-                                menu.style.display = 'none';
-                            }
-                            
-                            // Close menu when clicking outside
-                            if (!isVisible) {
-                                const closeMenu = (e) => {
-                                    if (!menu.contains(e.target) && e.target !== button) {
-                                        menu.style.display = 'none';
-                                        document.removeEventListener('click', closeMenu);
-                                    }
-                                };
-                                setTimeout(() => document.addEventListener('click', closeMenu), 0);
-                            }
-                        };
-
-                        window.shareCharger = (title, lat, lng, method) => {
-                            const text = `Check out this EV charger: ${title}`;
-                            const currentUrl = new URL(window.location.href);
-                            currentUrl.searchParams.set('chargerId', charger.ID);
-                            const url = currentUrl.toString();
-
-                            // Generate static map preview URL
-                            const mapboxToken = window.MAPBOX_TOKEN;
-                            const staticMapWidth = 1200;
-                            const staticMapHeight = 630;
-                            const zoom = 15;
-                            const marker = encodeURIComponent(`pin-l-charging+EEC218(${lng},${lat})`);
-                            // Add banner overlay with ChargeNear branding
-                            const bannerText = encodeURIComponent(`[ChargeNear]`);
-                            const banner = encodeURIComponent(`box-l-t+00355F(${lng},${lat},${bannerText})`);
-                            const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${marker},${banner}/${lng},${lat},${zoom},0/${staticMapWidth}x${staticMapHeight}@2x?access_token=${mapboxToken}&logo=false`;
-
-                            // Update meta tags for sharing preview
-                            const metaTags = document.getElementsByTagName('meta');
-                            const updateMetaTag = (property, content) => {
-                                let tag = Array.from(metaTags).find(tag => 
-                                    tag.getAttribute('property') === property || 
-                                    tag.getAttribute('name') === property
-                                );
-                                if (!tag) {
-                                    tag = document.createElement('meta');
-                                    tag.setAttribute(property.startsWith('og:') ? 'property' : 'name', property);
-                                    document.head.appendChild(tag);
-                                }
-                                tag.setAttribute('content', content);
-                            };
-
-                            // Update meta tags with dynamic content
-                            updateMetaTag('og:title', `${title} - ChargeNear`);
-                            updateMetaTag('og:description', `${address} - ${operatorName}. ${statusTitle} charging station with ${charger.Connections?.length || 0} connectors.`);
-                            updateMetaTag('og:image', staticMapUrl);
-                            updateMetaTag('og:image:width', staticMapWidth.toString());
-                            updateMetaTag('og:image:height', staticMapHeight.toString());
-                            updateMetaTag('og:url', url);
-                            updateMetaTag('og:type', 'website');
-
-                            // Update Twitter Card meta tags
-                            updateMetaTag('twitter:card', 'summary_large_image');
-                            updateMetaTag('twitter:title', `${title} - ChargeNear`);
-                            updateMetaTag('twitter:description', `${address} - ${operatorName}. ${statusTitle} charging station.`);
-                            updateMetaTag('twitter:image', staticMapUrl);
-
-                            switch (method) {
-                                case 'copy':
-                                    navigator.clipboard.writeText(url).then(() => {
-                                        // Create and show a temporary success message
-                                        const successMsg = document.createElement('div');
-                                        successMsg.textContent = 'Link copied to clipboard!';
-                                        successMsg.style.cssText = `
-                                            position: fixed;
-                                            bottom: 20px;
-                                            left: 50%;
-                                            transform: translateX(-50%);
-                                            background: #4CAF50;
-                                            color: white;
-                                            padding: 12px 24px;
-                                            border-radius: 8px;
-                                            font-size: 14px;
-                                            z-index: 10000;
-                                            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                                        `;
-                                        document.body.appendChild(successMsg);
-                                        setTimeout(() => successMsg.remove(), 3000);
-                                    }).catch(err => {
-                                        console.error('Failed to copy:', err);
-                                        alert('Failed to copy link. Please try again.');
-                                    });
-                                    break;
-                                    
-                                case 'twitter':
-                                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-                                    break;
-                                    
-                                case 'facebook':
-                                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
-                                    break;
-                                    
-                                case 'whatsapp':
-                                    // WhatsApp sharing URL with text and location
-                                    const whatsappText = encodeURIComponent(`${text}\n\nLocation: ${address}\n${url}`);
-                                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                                    const whatsappUrl = isMobile ? 
-                                        `whatsapp://send?text=${whatsappText}` : 
-                                        `https://web.whatsapp.com/send?text=${whatsappText}`;
-                                    window.open(whatsappUrl, '_blank');
-                                    break;
-                                    
-                                default:
-                                    if (navigator.share) {
-                                        navigator.share({
-                                            title: 'ChargeNear',
-                                            text: text,
-                                            url: url
-                                        }).catch(console.error);
-                                    } else {
-                                        // Fallback to copy
-                                        navigator.clipboard.writeText(url).then(() => {
-                                            const successMsg = document.createElement('div');
-                                            successMsg.textContent = 'Link copied to clipboard!';
-                                            successMsg.style.cssText = `
-                                                position: fixed;
-                                                bottom: 20px;
-                                                left: 50%;
-                                                transform: translateX(-50%);
-                                                background: #4CAF50;
-                                                color: white;
-                                                padding: 12px 24px;
-                                                border-radius: 8px;
-                                                font-size: 14px;
-                                                z-index: 10000;
-                                                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                                            `;
-                                            document.body.appendChild(successMsg);
-                                            setTimeout(() => successMsg.remove(), 3000);
-                                        }).catch(console.error);
-                                    }
-                            }
-                            
-                            // Close the share menu
-                            const menu = document.querySelector('.share-menu');
-                            if (menu) menu.style.display = 'none';
-                        };
-                        
-                        currentPopup.open();
-                        console.log("Popup opened successfully");
-                    } catch (error) {
-                        console.error("Error showing popup:", error);
-                    }
-                });
-
-                markers.push(marker);
-            } catch (error) {
-                console.error("Error adding marker for charger:", error, charger);
-            }
-        });
-    }).catch(error => {
-        console.error("Error adding chargers to map:", error);
-    });
-}
-
-// Create a custom style toggle control
-class StyleToggleControl {
-    constructor() {
-        this.satellite = false;
-    }
-
-    onAdd(map) {
-        this._map = map;
-        this._container = document.createElement('div');
-        this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-        
-        // Create the toggle button with a better satellite icon
-        this._container.innerHTML = `
-            <button id="style-toggle" class="mapboxgl-ctrl-icon" title="Switch to Satellite View" style="background: white; border: none; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
-            </button>
-        `;
-        
-        const button = this._container.querySelector('#style-toggle');
-        
-        button.onclick = () => {
-            this.satellite = !this.satellite;
-            
-            // Change the map style based on the toggle state
-            if (this.satellite) {
-                // Switch to satellite view
-                map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
-                button.title = 'Switch to Street View';
-                button.innerHTML = `
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="9" y1="3" x2="9" y2="21"></line>
-                        <line x1="15" y1="3" x2="15" y2="21"></line>
-                        <line x1="3" y1="9" x2="21" y2="9"></line>
-                        <line x1="3" y1="15" x2="21" y2="15"></line>
-                    </svg>
-                `;
-            } else {
-                // Switch to street view
-                map.setStyle('mapbox://styles/mapbox/streets-v12');
-                button.title = 'Switch to Satellite View';
-                button.innerHTML = `
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="2" y1="12" x2="22" y2="12"></line>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                    </svg>
-                `;
-            }
-            
-            // Dispatch a style change event that we can listen to
-            map.once('style.load', () => {
-                console.log("Map style changed and reloaded");
-                map.fire('custom-style-changed');
+            const el = marker.getElement();
+            el.style.cursor = 'pointer';
+            el.setAttribute('aria-label', tidyName(info.Title) || 'EV charger');
+            el.addEventListener('click', event => {
+                event.stopPropagation();
+                openChargerDetails(charger);
             });
-        };
-        
-        return this._container;
-    }
 
-    onRemove() {
-        this._container.parentNode.removeChild(this._container);
-        this._map = undefined;
-    }
-}
-
-window.showChargerDetails = async (chargerId) => {
-    try {
-        const map = await window.getMap();
-        if (!map) {
-            console.error('Map not available');
-            return;
-        }
-
-        // Import getChargerDetails if needed
-        let getChargerDetails;
-        try {
-            const api = await import('./api.js');
-            getChargerDetails = api.getChargerDetails;
-        } catch (error) {
-            console.error("Error importing getChargerDetails:", error);
-            return;
-        }
-
-        const charger = await getChargerDetails(chargerId);
-        if (!charger) {
-            console.error('Charger details not found');
-            return;
-        }
-
-        // Center map on the charger location
-        const position = {
-            lat: charger.AddressInfo.Latitude,
-            lng: charger.AddressInfo.Longitude
-        };
-        
-        map.setCenter(position);
-        map.setZoom(16);
-
-        // Show the charger's marker info window
-        const marker = window.markers.find(m => m.chargerId === chargerId);
-        if (marker) {
-            google.maps.event.trigger(marker, 'click');
-        }
-    } catch (error) {
-        console.error('Error showing charger details:', error);
-    }
-};
-
-function createPopupContent(charger) {
-    const address = charger.AddressInfo;
-    const connections = charger.Connections;
-    
-    const powerLevels = connections.map(conn => conn.PowerKW || 0);
-    const maxPower = Math.max(...powerLevels);
-    
-    const powerClass = maxPower >= 50 ? 'high-power' :
-                      maxPower >= 20 ? 'medium-power' : 'low-power';
-
-    const statusClass = charger.StatusType?.IsOperational ? 'operational' : 'not-operational';
-    const statusText = charger.StatusType?.IsOperational ? 'Operational' : 'Not Operational';
-    
-    const connectionsHtml = connections.map(conn => {
-        const powerText = conn.PowerKW ? `${conn.PowerKW}kW` : 'Unknown power';
-        return `
-            <div class="connection-item">
-                <span class="connection-type">${conn.ConnectionType?.Title || 'Unknown'}</span>
-                <span class="connection-power">${powerText}</span>
-            </div>
-        `;
-    }).join('');
-
-    const directionUrl = `https://www.google.com/maps/dir/?api=1&destination=${address.Latitude},${address.Longitude}`;
-    const shareUrl = `${window.location.origin}${window.location.pathname}?chargerId=${charger.ID}`;
-
-    return `
-        <div class="charger-popup ${powerClass}">
-            <div class="charger-header">
-                <h2>${address.Title}</h2>
-                <div class="status-badge ${statusClass}">${statusText}</div>
-            </div>
-            
-            <div class="charger-address">
-                <p>${address.AddressLine1}</p>
-                <p>${address.Town}, ${address.StateOrProvince} ${address.Postcode}</p>
-            </div>
-
-            <div class="charger-connections">
-                <h3>Available Connectors</h3>
-                <div class="connections-list">
-                    ${connectionsHtml}
-                </div>
-            </div>
-
-            <div class="charger-actions">
-                <a href="${directionUrl}" target="_blank" class="action-button directions">
-                    <i class="fas fa-directions"></i>
-                    Get Directions
-                </a>
-                <button onclick="shareLocation('${shareUrl}', '${address.Title}')" class="action-button share">
-                    <i class="fas fa-share-alt"></i>
-                    Share
-                </button>
-            </div>
-        </div>
-    `;
+            markers.push(marker);
+        });
+    });
 }

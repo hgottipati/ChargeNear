@@ -3,135 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About ChargeNear</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1">
-    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1">
-    <link rel="apple-touch-icon" href="/favicon.ico?v=1">
+    <script>
+        if (location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(location.hostname)) {
+            location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+        }
+    </script>
+    <title>About ChargeNear · Free EV Charger Map for Hosts</title>
+    <meta name="description" content="ChargeNear is a free, open-source map of nearby EV chargers. Hotels and Airbnb hosts can embed it on their site in one line of code.">
+    <link rel="canonical" href="https://chargenear.org/about.html">
+    <meta name="theme-color" content="#00355F">
+
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <meta property="og:site_name" content="ChargeNear">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chargenear.org/about.html">
+    <meta property="og:title" content="About ChargeNear · Free EV Charger Map for Hosts">
+    <meta property="og:description" content="A free, open-source map of nearby EV chargers that hotels and Airbnb hosts can embed in one line of code.">
+    <meta property="og:image" content="https://chargenear.org/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://chargenear.org/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background-color: #f0f2f5;
-            color: #333;
-            background-image:
-                linear-gradient(rgba(0, 53, 95, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 53, 95, 0.05) 1px, transparent 1px);
-            background-size: 20px 20px;
-            transition: background-color 0.3s;
-        }
-        .header {
-            background-color: #00355F;
-            padding: 0.75rem 1rem;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 1.625rem;
-            font-weight: bold;
-            color: #EEC218;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        .header a {
-            color: #fff;
-            text-decoration: none;
-            font-size: 1.5rem;
-            font-weight: 500;
-        }
-        .container {
-            max-width: 4xl;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        .card {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #00355F;
-            margin-top: 0;
-            padding-bottom: 0.5rem;
-            border-bottom: 3px solid #EEC218;
-        }
-        p {
-            line-height: 1.6;
-            color: #4b5563;
-        }
-        .contributors-list a, .repo-link a {
-            color: #2563eb;
-            text-decoration: none;
-        }
-        .contributors-list a:hover, .repo-link a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/main.css?v=2">
+    <link rel="stylesheet" href="/css/page.css?v=2">
 </head>
 <body>
-
-    <div class="header">
-        <h1><a href="/">ChargeNear</a></h1>
-        <nav>
-            <a href="/" aria-label="Open Map"><i class="fa-solid fa-bars"></i></a>
+    <header class="site-header">
+        <a class="brand" href="/"><i class="fa-solid fa-bolt"></i>ChargeNear</a>
+        <nav class="header-nav">
+            <a href="/">Map</a>
+            <a href="#hosts">For hosts</a>
+            <a href="/about.html" aria-current="page">About</a>
         </nav>
-    </div>
+    </header>
 
-    <div class="container">
-        <div class="text-center mb-12" style="margin-bottom: 3rem;">
-            <h1 style="font-size: 3rem; font-weight: 800; color: #111827;">About ChargeNear</h1>
-            <p style="font-size: 1.25rem; color: #4b5563;">Making EV charging simple and accessible for everyone.</p>
-        </div>
+    <main class="page">
+        <section class="hero">
+            <p class="eyebrow">About ChargeNear</p>
+            <h1>Find EV chargers near any address.</h1>
+            <p>A free, open-source map of public EV charging stations, built so hotels and Airbnb hosts can show guests where to charge.</p>
+            <div class="hero-actions">
+                <a class="btn btn-navy" href="/"><i class="fa-solid fa-map-location-dot"></i> Open the map</a>
+                <a class="btn btn-secondary" href="#hosts"><i class="fa-solid fa-code"></i> Embed on your site</a>
+            </div>
+        </section>
 
-        <div class="card">
-            <h2>Our Mission</h2>
-            <p>
-              ChargeNear is a project born out of the desire to accelerate the transition to sustainable transportation. Our goal is to provide a comprehensive and user-friendly platform for electric vehicle (EV) drivers to find charging stations, plan their routes, and connect with a community of fellow EV enthusiasts. We believe that by making charging infrastructure more visible and accessible, we can help overcome one of the main barriers to EV adoption.
-            </p>
-        </div>
-
-        <div class="card">
-            <h2>About me</h2>
-            <p>
-              Hi, I'm Hareesh Gottipati, the creator of ChargeNear. As a Software Engineer with over 10 years of experience, I specialize in building scalable, high-performance data solutions with modern tech stack. I'm passionate about automation, cloud infrastructure, and using AI to create efficient, data-driven workflows.
-            </p>
-            <p>
-              I developed ChargeNear as an open-source tool to help hotels and Airbnb hosts offer their guests an easy way to find nearby EV chargers, blending my technical expertise with my interest in travel and sustainable technology.
-            </p>
-            <p class="repo-link">
-              Let's connect! You can find me on <a href="https://www.linkedin.com/in/hareeshgottipati/" target="_blank" rel="noopener noreferrer">LinkedIn</a> or view my other projects on <a href="https://github.com/hgottipati" target="_blank" rel="noopener noreferrer">GitHub</a>.
-            </p>
-        </div>
-
-        <div class="card">
-            <h2>Open Source & Contributions</h2>
-            <p>
-              ChargeNear is an open-source project, and we welcome contributions from the community. Whether you're a developer, a designer, or an EV enthusiast, there are many ways to get involved. Check out our GitHub repository to see how you can help.
-            </p>
-            <p class="repo-link">
-              <a href="https://github.com/hgottipati/ChargeNear" target="_blank" rel="noopener noreferrer">
-                ChargeNear on GitHub
-              </a>
-            </p>
-            <h3 style="font-size: 1.25rem; font-weight: 700; margin-top: 2rem;">Our Contributors</h3>
-            <ul class="contributors-list">
-              <li><a href="https://github.com/hgottipati" target="_blank" rel="noopener noreferrer">Hareesh Gottipati</a></li>
+        <section class="card">
+            <h2>What it does</h2>
+            <p>ChargeNear shows public chargers around your location or any address you search, using community data from Open Charge Map.</p>
+            <ul class="feature-list">
+                <li><i class="fa-solid fa-filter"></i><span><strong>Filter fast</strong>By network, Level 2 or DC fast, and power output.</span></li>
+                <li><i class="fa-solid fa-person-walking"></i><span><strong>Walking distance</strong>Show a 5 min, 15 min, or 1 mile circle around a property.</span></li>
+                <li><i class="fa-solid fa-diamond-turn-right"></i><span><strong>One-tap directions</strong>Open any charger in Google Maps or share a link to it.</span></li>
             </ul>
-        </div>
-    </div>
+        </section>
 
+        <section class="card" id="hosts">
+            <h2>For hotels and Airbnb hosts</h2>
+            <p>No on-site charger? You can still show EV-driving guests how close the nearest ones are. Enter your property's address, preview the map, and paste the code into your website. It's free and needs no account.</p>
+
+            <form class="embed-form" id="embed-form">
+                <input type="text" id="embed-address" value="Pike Place Market, Seattle, WA" aria-label="Property address" placeholder="Your property's address">
+                <button type="submit" class="btn btn-navy"><i class="fa-solid fa-eye"></i> Preview</button>
+            </form>
+            <label class="embed-option"><input type="checkbox" id="embed-fast"> Show DC fast chargers only</label>
+
+            <iframe class="embed-preview" id="embed-preview" title="ChargeNear map preview" loading="lazy"></iframe>
+
+            <div class="code-block">
+                <pre id="embed-code"></pre>
+                <button type="button" class="btn btn-primary" id="copy-embed"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>About me</h2>
+            <p>Hi, I'm Hareesh Gottipati, the creator of ChargeNear. As a Software Engineer with over 10 years of experience, I specialize in building scalable, high-performance data solutions with a modern tech stack. I'm passionate about automation, cloud infrastructure, and using AI to create efficient, data-driven workflows.</p>
+            <p>I built ChargeNear as an open-source tool to help hotels and Airbnb hosts give their guests an easy way to find nearby EV chargers, blending my technical background with my interest in travel and sustainable technology.</p>
+            <div class="about-links">
+                <a class="btn btn-secondary" href="https://www.linkedin.com/in/hareeshgottipati/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-linkedin"></i> LinkedIn</a>
+                <a class="btn btn-secondary" href="https://github.com/hgottipati" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> GitHub</a>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Open source</h2>
+            <p>ChargeNear is MIT-licensed and contributions are welcome — whether that's code, design, or reporting a charger that's out of date. Missing or wrong charger data can be fixed directly on <a href="https://openchargemap.org" target="_blank" rel="noopener noreferrer">Open Charge Map</a>, and the fix will show up here too.</p>
+            <div class="about-links">
+                <a class="btn btn-secondary" href="https://github.com/hgottipati/ChargeNear" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> ChargeNear on GitHub</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <a class="brand" href="/"><i class="fa-solid fa-bolt"></i>ChargeNear</a>
+            <nav class="footer-links">
+                <a href="/">Map</a>
+                <a href="#hosts">For hosts</a>
+                <a href="https://github.com/hgottipati/ChargeNear" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </nav>
+            <p class="footer-credits">
+                Charger data © <a href="https://openchargemap.org" target="_blank" rel="noopener noreferrer">Open Charge Map</a> contributors.
+                Maps © <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener noreferrer">Mapbox</a>
+                © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.
+                ChargeNear is free and open source under the MIT License.
+            </p>
+        </div>
+    </footer>
+
+    <script type="module" src="/js/about.js?v=2"></script>
 </body>
-</html> 
+</html>

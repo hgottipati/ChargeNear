@@ -1,150 +1,83 @@
-import { getMap, updateNearbyCircle } from './mapUtils.js';
-import { getChargers } from './api.js';
+import { getMap, addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker, updateNearbyCircle } from './mapUtils.js';
+import { getChargers, geocode } from './api.js';
+import { getActiveFilters, getSelectedRadius } from './filters.js';
+import { showToast } from './toast.js';
+
+export const DEFAULT_LOCATION = { lat: 47.6062, lon: -122.3321, label: 'Seattle, WA' };
 
 export let currentLocationCoords = { lat: null, lon: null };
 
-export async function getCurrentLocation() {
-    console.log("Attempting to get current location...");
+// The point the user last searched for or located; filters and the walking circle use it.
+export const searchCenter = { lat: DEFAULT_LOCATION.lat, lon: DEFAULT_LOCATION.lon };
+
+const LOCATION_ERRORS = {
+    1: 'Location access is turned off. Search for a place instead, or allow location in your browser settings.',
+    2: "Your location isn't available right now. Search for a place instead.",
+    3: 'Finding your location took too long. Please try again.'
+};
+
+export function getCurrentLocation({ timeout = 10000 } = {}) {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            console.error("Geolocation is not supported by this browser.");
-            reject(new Error("Geolocation is not supported by your browser."));
+            reject(Object.assign(new Error('Geolocation unsupported'), { userMessage: "Your browser doesn't support location. Search for a place instead." }));
             return;
         }
-        
-        console.log("Geolocation is supported, requesting position...");
-        
         navigator.geolocation.getCurrentPosition(
-            position => {
-                console.log("Successfully retrieved current location:", {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    accuracy: position.coords.accuracy
-                });
-                resolve({
-                    lat: position.coords.latitude,
-                    lon: position.coords.longitude
-                });
-            },
-            error => {
-                console.error("Error getting current location:", {
-                    message: error.message,
-                    code: error.code,
-                    PERMISSION_DENIED: error.code === 1,
-                    POSITION_UNAVAILABLE: error.code === 2,
-                    TIMEOUT: error.code === 3
-                });
-                
-                // Give a more specific error message based on the error code
-                let errorMessage = "Failed to get your location.";
-                if (error.code === 1) {
-                    errorMessage = "Location access was denied. Please allow location access in your browser settings.";
-                } else if (error.code === 2) {
-                    errorMessage = "Your location is not available. Please check your device's location services.";
-                } else if (error.code === 3) {
-                    errorMessage = "Getting your location timed out. Please try again.";
-                }
-                
-                reject(Object.assign(error, { userMessage: errorMessage }));
-            },
-            { 
-                timeout: 15000, 
-                enableHighAccuracy: true,
-                maximumAge: 0 // Don't use cached position
-            }
+            position => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
+            error => reject(Object.assign(error, { userMessage: LOCATION_ERRORS[error.code] || "Couldn't get your location." })),
+            { timeout, enableHighAccuracy: true, maximumAge: 60000 }
         );
     });
 }
 
-export async function showChargers(addChargersToMap, addCurrentLocationMarker, addSearchedLocationMarker) {
-    let address = document.getElementById("address").value;
-    const fastOnly = document.getElementById("fastOnly").checked;
-    const teslaSupercharger = document.getElementById("teslaSupercharger").checked;
-    const teslaDestination = document.getElementById("teslaDestination").checked;
-    const chargepointOnly = document.getElementById("chargepointOnly").checked;
-    const loading = document.getElementById("loading");
+export function setLoading(isLoading) {
+    document.getElementById('loading')?.classList.toggle('is-visible', isLoading);
+}
 
-    // If address is empty, default to "current location"
-    if (!address.trim()) {
-        address = "current location";
+export async function showChargersAround(lat, lon) {
+    searchCenter.lat = lat;
+    searchCenter.lon = lon;
+    const map = await getMap();
+    map.jumpTo({ center: [lon, lat], zoom: 14 });
+    const chargers = await getChargers(lat, lon, getActiveFilters());
+    addChargersToMap(chargers, [lon, lat]);
+    if (chargers.length === 0) {
+        showToast('No chargers match your filters here. Try zooming out or changing filters.', 'info');
     }
+    const radius = getSelectedRadius();
+    if (radius !== 'none') updateNearbyCircle([lon, lat], radius);
+}
 
+export async function locateUser({ quiet = false } = {}) {
     try {
-        if (loading) loading.style.display = "block";
-
-        let lat, lon;
-
-        if (address.toLowerCase() === "current location") {
-            if (currentLocationCoords.lat && currentLocationCoords.lon) {
-                lat = currentLocationCoords.lat;
-                lon = currentLocationCoords.lon;
-            } else {
-                try {
-                    const coords = await getCurrentLocation();
-                    lat = coords.lat;
-                    lon = coords.lon;
-                    currentLocationCoords.lat = lat;
-                    currentLocationCoords.lon = lon;
-                } catch (error) {
-                    // If geolocation fails, fall back to the default location
-                    console.log("Failed to get current location, using default:", error.message);
-                    lat = 47.6290525; // Default latitude (Seattle, WA)
-                    lon = -122.3758909; // Default longitude
-                    address = "1111 Expedia Group Wy W, Seattle, WA 98119"; // Default address for marker
-                }
-            }
-
-            const map = await getMap();
-            map.jumpTo({ center: [lon, lat], zoom: 14 });
-            if (address.toLowerCase() === "current location") {
-                addCurrentLocationMarker(lat, lon);
-            } else {
-                // If we fell back to the default location, use a searched location marker
-                addSearchedLocationMarker(lat, lon, address);
-            }
-            const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
-            addChargersToMap(chargers, [lon, lat]);
-            
-            // Update nearby radius circle
-            const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
-            updateNearbyCircle([lon, lat], selectedRadius);
-        } else {
-            if (typeof window.MAPBOX_TOKEN === 'undefined') {
-                console.error("Mapbox token is not defined");
-                throw new Error("Mapbox token is not defined. Please ensure config.js is loaded correctly.");
-            }
-            
-            try {
-                console.log(`Geocoding address: ${address}`);
-                const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${window.MAPBOX_TOKEN}`);
-                const data = await response.json();
-                console.log("Geocoding response:", data);
-                
-                if (!data.features || data.features.length === 0) {
-                    throw new Error("Address not found. Please try a different address.");
-                }
-
-                [lon, lat] = data.features[0].center;
-                console.log(`Address geocoded to lat: ${lat}, lon: ${lon}`);
-                
-                const map = await getMap();
-                map.jumpTo({ center: [lon, lat], zoom: 14 });
-                addSearchedLocationMarker(lat, lon, address);
-                const chargers = await getChargers(lat, lon, fastOnly, teslaSupercharger, teslaDestination, chargepointOnly);
-                addChargersToMap(chargers, [lon, lat]);
-                
-                // Update nearby radius circle
-                const selectedRadius = document.querySelector('input[name="nearbyRadius"]:checked')?.value;
-                updateNearbyCircle([lon, lat], selectedRadius);
-            } catch (error) {
-                console.error("Error geocoding address:", error);
-                throw error;
-            }
-        }
+        const { lat, lon } = await getCurrentLocation();
+        setLoading(true);
+        currentLocationCoords.lat = lat;
+        currentLocationCoords.lon = lon;
+        addCurrentLocationMarker(lat, lon);
+        document.getElementById('address').value = '';
+        await showChargersAround(lat, lon);
+        return true;
     } catch (error) {
-        console.error("Error in showChargers:", error.message);
-        alert("Error: " + error.message);
+        if (!quiet) showToast(error.userMessage || "Couldn't get your location.", 'error');
+        return false;
     } finally {
-        if (loading) loading.style.display = "none";
+        setLoading(false);
+    }
+}
+
+export async function searchLocation(query) {
+    const trimmed = query.trim();
+    if (!trimmed) return locateUser();
+
+    setLoading(true);
+    try {
+        const { lat, lon, label } = await geocode(trimmed);
+        addSearchedLocationMarker(lat, lon, label);
+        await showChargersAround(lat, lon);
+    } catch (error) {
+        showToast(error.message || 'Something went wrong. Please try again.', 'error');
+    } finally {
+        setLoading(false);
     }
 }

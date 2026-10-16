@@ -40,7 +40,6 @@ jobs:
             --exclude ".gitignore" \
             --exclude ".idea/*" \
             --exclude "docs/*" \
-            --exclude "style.css" \
             --delete
 
       - name: Invalidate CloudFront cache

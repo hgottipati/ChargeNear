@@ -16,7 +16,7 @@
 An interactive, open-source map for hotels and Airbnb hosts to display nearby EV chargers, helping attract electric vehicle-owning guests.
 
 ## Features
-- Defaults to the user's current location (with permission), falls back to Austin, TX if denied.
+- Defaults to the user's current location (with permission), falls back to Seattle, WA if denied.
 - Advanced filtering options:
   - Charger Types: Level 2 and Level 3 (DC Fast) chargers
   - Network Providers: Tesla Superchargers, Tesla Destination, ChargePoint, Electrify America, EVgo, Blink, Volta, Shell Recharge, EV Connect, and SemaConnect
@@ -39,7 +39,7 @@ Hotels and Airbnb hosts can embed this map on their websites to:
 - Allow guests to filter chargers based on their specific needs (e.g., Tesla Superchargers, high-power chargers).
 
 ## How to Embed on Your Website
-This tool is **free to use** and open-source! Embed it in two easy ways:
+This tool is **free to use** and open-source! The easiest way is the embed builder at [chargenear.org/about.html#hosts](https://chargenear.org/about.html#hosts), which previews the map for your address and gives you the code to copy. Or embed it manually in two ways:
 
 ### Option 1: Embed with a Specific Address
 Copy this iframe code into your website's HTML, replacing the address with your property's:
