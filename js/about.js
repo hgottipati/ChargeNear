@@ -8,6 +8,8 @@ const addressInput = document.getElementById('embed-address');
 const nameInput = document.getElementById('embed-name');
 const countInput = document.getElementById('embed-count');
 const radiusInput = document.getElementById('embed-radius');
+const propertyTypeInput = document.getElementById('embed-property-type');
+const propertyTypeOption = document.getElementById('embed-type-option');
 const fastInput = document.getElementById('embed-fast');
 const countOption = document.getElementById('embed-count-option');
 const radiusOption = document.getElementById('embed-radius-option');
@@ -51,6 +53,7 @@ function embedUrl(origin) {
     if (nameInput.value.trim()) params.set('name', nameInput.value.trim());
     if (isCard && countInput.value !== '3') params.set('count', countInput.value);
     if (!isCard && address && radiusInput.value !== 'none') params.set('radius', radiusInput.value);
+    if (!isCard && address) params.set('type', propertyTypeInput.value);
     if (fastInput.checked) params.set('fastOnly', 'true');
     const query = params.toString();
     const base = isCard ? `${origin}card` : origin;
@@ -62,6 +65,7 @@ function render() {
     const height = isCard ? cardHeight() : 500;
     countOption.hidden = !isCard;
     radiusOption.hidden = isCard;
+    propertyTypeOption.hidden = isCard;
 
     showResolvedAddress();
     preview.src = embedUrl(`${window.location.origin}/`);
@@ -82,7 +86,7 @@ form.addEventListener('submit', event => {
 });
 
 document.querySelectorAll('input[name="embed-type"]').forEach(input => input.addEventListener('change', render));
-[fastInput, countInput, radiusInput].forEach(input => input.addEventListener('change', render));
+[fastInput, countInput, radiusInput, propertyTypeInput].forEach(input => input.addEventListener('change', render));
 nameInput.addEventListener('change', render);
 
 copyButton.addEventListener('click', async () => {

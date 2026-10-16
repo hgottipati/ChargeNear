@@ -68,7 +68,7 @@ async function init() {
         if (start.mode === 'address') {
             const address = params.get('address');
             const name = (params.get('name') || '').trim();
-            addPropertyMarker(start.lat, start.lon, name || address.split(',')[0].trim());
+            addPropertyMarker(start.lat, start.lon, name || address.split(',')[0].trim(), params.get('type'));
         }
 
         await showChargersAround(start.lat, start.lon);

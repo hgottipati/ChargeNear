@@ -196,7 +196,9 @@ export function addSearchedLocationMarker(lat, lon, label) {
     });
 }
 
-export function addPropertyMarker(lat, lon, label) {
+const PROPERTY_ICONS = { hotel: 'fa-hotel', home: 'fa-house' };
+
+export function addPropertyMarker(lat, lon, label, type = 'home') {
     Object.assign(property, { lat, lon, label });
     if (propertyMarker) propertyMarker.remove();
 
@@ -206,7 +208,7 @@ export function addPropertyMarker(lat, lon, label) {
     el.setAttribute('aria-label', `Property: ${label}`);
     el.innerHTML = `
         <span class="property-label">${escapeHtml(label)}</span>
-        <span class="property-pin"><i class="fa-solid fa-house" aria-hidden="true"></i></span>`;
+        <span class="property-pin"><i class="fa-solid ${PROPERTY_ICONS[type] || PROPERTY_ICONS.home}" aria-hidden="true"></i></span>`;
 
     getMap().then(map => {
         propertyMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })

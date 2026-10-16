@@ -85,6 +85,12 @@
             <p class="embed-resolved" id="embed-resolved" aria-live="polite"></p>
             <div class="embed-card-options">
                 <input type="text" id="embed-name" placeholder="Property name (optional), e.g. Lakeview Cabin" aria-label="Property name">
+                <label id="embed-type-option">Property
+                    <select id="embed-property-type" aria-label="Property type">
+                        <option value="hotel">Hotel</option>
+                        <option value="home">Home or rental</option>
+                    </select>
+                </label>
                 <label id="embed-radius-option">Walking circle
                     <select id="embed-radius" aria-label="Walking circle around the property">
                         <option value="none">None</option>
@@ -155,6 +161,6 @@
         </div>
     </footer>
 
-    <script type="module" src="/js/about.js?v=7"></script>
+    <script type="module" src="/js/about.js?v=8"></script>
 </body>
 </html>
