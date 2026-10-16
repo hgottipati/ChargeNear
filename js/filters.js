@@ -2,7 +2,7 @@ export const FILTER_IDS = [
     'fastOnly', 'level2Only',
     'teslaSupercharger', 'teslaDestination', 'chargepointOnly', 'electrifyAmerica',
     'evgo', 'blink', 'volta', 'shellRecharge', 'evConnect', 'semaConnect',
-    'operationalOnly',
+    'operationalOnly', 'publicOnly',
     'highPower', 'mediumPower', 'lowPower'
 ];
 

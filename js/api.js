@@ -8,6 +8,9 @@ const CORS_PROXY = 'https://corsproxy.io/?';
 
 const TESLA_OPERATOR = 'Tesla (Tesla-only charging)';
 
+// Open Charge Map usage types: 2 = Private - Restricted Access, 6 = Private - For Staff, Visitors or Customers
+const PRIVATE_USAGE_TYPE_IDS = [2, 6];
+
 const NETWORK_FILTERS = {
     chargepointOnly: 'chargepoint',
     electrifyAmerica: 'electrify america',
@@ -63,7 +66,13 @@ export function applyFilters(chargers, filters = {}) {
         result = result.filter(charger => charger.StatusType?.Title === 'Operational');
     }
 
-    const hasOtherFilters = Object.entries(filters).some(([key, value]) => key !== 'operationalOnly' && value === true);
+    if (filters.publicOnly) {
+        result = result.filter(charger => !PRIVATE_USAGE_TYPE_IDS.includes(charger.UsageType?.ID));
+    }
+
+    const hasOtherFilters = Object.entries(filters).some(([key, value]) =>
+        !['operationalOnly', 'publicOnly'].includes(key) && value === true
+    );
     if (!hasOtherFilters) return result;
 
     return result.filter(charger =>

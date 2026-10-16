@@ -128,6 +128,7 @@ function setupFilters() {
             checkbox.indeterminate = false;
         });
         document.getElementById('operationalOnly').checked = true;
+        document.getElementById('publicOnly').checked = true;
         document.getElementById('nearbyNone').checked = true;
         syncSelectAll();
         updateFilterBadges();

@@ -15,7 +15,9 @@ const MARKER_COLORS = {
     offline: '#94a3b8'
 };
 
-const KEEP_UPPERCASE = new Set(['EV', 'DC', 'CC', 'UW', 'UWB', 'USA', 'LLC', 'NE', 'NW', 'SE', 'SW', 'II', 'III', 'HQ', 'REI', 'QFC', 'YMCA']);
+// Excludes codes that are also common words (IN, OR, ME, OK, HI).
+const US_STATES = 'AL AK AZ AR CA CO CT DE DC FL GA ID IL IA KS KY LA MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
+const KEEP_UPPERCASE = new Set(['EV', 'CC', 'UW', 'UWB', 'USA', 'LLC', 'NW', 'SE', 'SW', 'II', 'III', 'HQ', 'REI', 'QFC', 'YMCA', ...US_STATES]);
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -287,14 +289,57 @@ function statusPill(statusTitle) {
     return `<span class="status-pill ${cls}">${escapeHtml(statusTitle)}</span>`;
 }
 
+const STALE_AFTER_DAYS = 365;
+
+function lastVerifiedDate(charger) {
+    const value = charger.DateLastVerified || charger.DateLastStatusUpdate;
+    return value ? new Date(value) : null;
+}
+
+export function isStale(charger) {
+    const verified = lastVerifiedDate(charger);
+    return !verified || (Date.now() - verified.getTime()) / 86400000 > STALE_AFTER_DAYS;
+}
+
+function formatDate(date) {
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Open Charge Map hours look like "MON: 24 hours | TUE: 24 hours | ...".
+function formatAccessNotes(text) {
+    if (!text) return null;
+    const parts = text.split('|').map(part => part.trim()).filter(Boolean);
+    const dayPattern = /^(MON|TUE|WED|THU|FRI|SAT|SUN):\s*(.+)$/i;
+    const days = parts.map(part => part.match(dayPattern));
+    if (days.length === 7 && days.every(Boolean)) {
+        const hours = new Set(days.map(match => match[2].toLowerCase()));
+        if (hours.size === 1) {
+            const value = days[0][2];
+            return /^24 hours$/i.test(value) ? 'Open 24/7' : `Daily: ${value}`;
+        }
+    }
+    return parts.join('\n');
+}
+
+function freshnessNote(charger) {
+    const verified = lastVerifiedDate(charger);
+    if (!verified) {
+        return '<p class="freshness is-stale"><i class="fa-solid fa-triangle-exclamation"></i> Never verified — this listing may be outdated.</p>';
+    }
+    if (isStale(charger)) {
+        return `<p class="freshness is-stale"><i class="fa-solid fa-triangle-exclamation"></i> Not verified since ${escapeHtml(formatDate(verified))} — this listing may be outdated.</p>`;
+    }
+    return `<p class="freshness"><i class="fa-solid fa-circle-check"></i> Verified ${escapeHtml(formatDate(verified))}</p>`;
+}
+
 function chargerCardHtml(charger) {
-    const { Latitude, Longitude, Title, AddressLine1, Town, StateOrProvince, Postcode } = charger.AddressInfo;
+    const { Latitude, Longitude, Title, AddressLine1, Town, StateOrProvince, Postcode, AccessComments } = charger.AddressInfo;
     const address = [AddressLine1, Town, StateOrProvince, Postcode].filter(Boolean).join(', ');
     const operator = charger.OperatorInfo?.Title || 'Unknown network';
     const cost = charger.UsageCost || 'Not listed';
-    const updated = charger.DateLastStatusUpdate
-        ? new Date(charger.DateLastStatusUpdate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-        : null;
+    const access = charger.UsageType?.Title || 'Not listed';
+    const hours = formatAccessNotes(AccessComments);
+    const notes = charger.GeneralComments;
 
     const connectors = (charger.Connections || []).map(conn => {
         const meta = [
@@ -315,17 +360,21 @@ function chargerCardHtml(charger) {
                 <p class="charger-operator">${escapeHtml(operator)}</p>
                 ${statusPill(charger.StatusType?.Title)}
             </div>
+            ${freshnessNote(charger)}
             <dl class="charger-field">
                 <dt>Address</dt>
                 <dd>${escapeHtml(address || 'Not listed')}</dd>
+                <dt>Access</dt>
+                <dd>${escapeHtml(access)}</dd>
+                ${hours ? `<dt>Hours</dt><dd class="preserve-lines">${escapeHtml(hours)}</dd>` : ''}
                 <dt>Cost</dt>
                 <dd>${escapeHtml(cost)}</dd>
+                ${notes ? `<dt>Notes</dt><dd class="preserve-lines">${escapeHtml(notes)}</dd>` : ''}
             </dl>
             <div class="charger-connectors">
                 <h4>Connectors</h4>
                 ${connectors}
             </div>
-            ${updated ? `<p class="charger-updated"><i class="fa-regular fa-clock"></i> Status updated ${escapeHtml(updated)}</p>` : ''}
             <div class="charger-actions">
                 <a class="btn btn-primary" href="https://www.google.com/maps/dir/?api=1&destination=${Latitude},${Longitude}" target="_blank" rel="noopener">
                     <i class="fa-solid fa-diamond-turn-right"></i> Directions
@@ -334,6 +383,9 @@ function chargerCardHtml(charger) {
                     <i class="fa-solid fa-share-nodes"></i> Share
                 </button>
             </div>
+            <a class="report-link" href="https://map.openchargemap.io/?id=${encodeURIComponent(charger.ID)}" target="_blank" rel="noopener">
+                <i class="fa-regular fa-flag"></i> Not here or wrong info? Report it on Open Charge Map
+            </a>
         </div>`;
 }
 
@@ -386,6 +438,7 @@ export function addChargersToMap(chargers, center) {
 
             const el = marker.getElement();
             el.style.cursor = 'pointer';
+            el.classList.toggle('is-stale', isStale(charger));
             el.setAttribute('aria-label', tidyName(info.Title) || 'EV charger');
             el.addEventListener('click', event => {
                 event.stopPropagation();

@@ -536,6 +536,57 @@ html, body {
     white-space: nowrap;
 }
 
+.freshness {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: -4px 0 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--success);
+    background: #f0fdf4;
+    border-radius: var(--radius-sm);
+}
+
+.freshness i {
+    margin-top: 2px;
+}
+
+.freshness.is-stale {
+    color: #92400e;
+    background: #fffbeb;
+}
+
+.preserve-lines {
+    white-space: pre-line;
+}
+
+.report-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: -4px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.report-link:hover {
+    color: var(--navy);
+    text-decoration: underline;
+}
+
+.mapboxgl-marker.is-stale svg {
+    opacity: 0.45;
+}
+
+.legend-stale {
+    background: #16a34a;
+    opacity: 0.45;
+}
+
 .charger-updated {
     margin: 0;
     font-size: 12px;
