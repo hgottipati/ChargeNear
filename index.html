@@ -67,6 +67,7 @@
 
     <main>
         <div id="map" role="region" aria-label="Map of EV chargers"></div>
+        <ul id="filter-chips" class="filter-chips" aria-label="Active filters"></ul>
         <div id="loading" role="status"><span class="spinner"></span> Finding chargers…</div>
         <button type="button" id="search-area" class="search-area-button" hidden>
             <i class="fa-solid fa-rotate-right"></i> Search this area
@@ -80,7 +81,7 @@
                 <li><span class="legend-swatch legend-fast"></span> DC fast / 150 kW+</li>
                 <li><span class="legend-swatch legend-offline"></span> Offline or unknown</li>
                 <li><span class="legend-swatch legend-stale"></span> Not verified in 12+ months</li>
-                <li><span class="legend-swatch legend-cluster">3</span> Group (tap to zoom)</li>
+                <li><span class="legend-swatch legend-cluster" aria-hidden="true">3</span> Group (tap to zoom)</li>
                 <li><span class="legend-swatch legend-you"></span> You</li>
             </ul>
         </div>

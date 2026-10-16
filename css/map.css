@@ -67,6 +67,66 @@ html, body {
     display: none;
 }
 
+/* ---------- Active filter chips ---------- */
+.filter-chips {
+    position: fixed;
+    top: calc(var(--header-height) + 10px);
+    left: 10px;
+    right: 60px;
+    z-index: 5;
+    display: flex;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+    pointer-events: none;
+}
+
+.filter-chips:empty {
+    display: none;
+}
+
+.filter-chips:not(:empty) ~ #loading,
+.filter-chips:not(:empty) ~ .search-area-button {
+    top: calc(var(--header-height) + 56px);
+}
+
+.filter-chip {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 6px 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--navy);
+    background: var(--surface);
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0, 36, 63, 0.15);
+    pointer-events: auto;
+}
+
+.filter-chip button {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.filter-chip button:hover {
+    color: var(--navy);
+    background: var(--surface-alt);
+}
+
 /* ---------- Legend ---------- */
 .map-legend {
     position: fixed;

@@ -1,7 +1,7 @@
 import { getChargers, getAddressSuggestions } from './api.js';
 import { searchCenter, searchLocation, setLoading, showChargersAround } from './location.js';
 import { getMap, addChargersToMap, updateNearbyCircle, removeNearbyCircle } from './mapUtils.js';
-import { getActiveFilters, countActiveFilters, getSelectedRadius } from './filters.js';
+import { FILTER_IDS, getActiveFilters, countActiveFilters, getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
 
 const SELECT_ALL_GROUPS = [
@@ -91,7 +91,10 @@ function setupFilters() {
     const close = () => modal.classList.remove('is-open');
 
     document.addEventListener('chargenear:open-filters', open);
-    document.addEventListener('chargenear:filters-changed', updateFilterBadges);
+    document.addEventListener('chargenear:filters-changed', () => {
+        updateFilterBadges();
+        renderFilterChips();
+    });
     document.getElementById('close-filters').addEventListener('click', close);
     modal.addEventListener('click', event => {
         if (event.target === modal) close();
@@ -134,32 +137,75 @@ function setupFilters() {
         updateFilterBadges();
     });
 
-    document.getElementById('apply-filters').addEventListener('click', async () => {
+    document.getElementById('apply-filters').addEventListener('click', () => {
         close();
-        updateFilterBadges();
-        setLoading(true);
-        try {
-            const { lat, lon } = searchCenter;
-            const chargers = await getChargers(lat, lon, getActiveFilters());
-            addChargersToMap(chargers, [lon, lat]);
-            if (chargers.length === 0) {
-                showToast('No chargers match these filters nearby.', 'info');
-            }
-            const radius = getSelectedRadius();
-            if (radius === 'none') {
-                await removeNearbyCircle();
-            } else {
-                await updateNearbyCircle([lon, lat], radius);
-            }
-        } catch (error) {
-            window.reportError?.(error);
-            showToast("Couldn't update chargers. Please try again.", 'error');
-        } finally {
-            setLoading(false);
+        applyCurrentFilters();
+    });
+
+    document.getElementById('filter-chips').addEventListener('click', event => {
+        const button = event.target.closest('button[data-filter]');
+        if (!button) return;
+        const input = document.getElementById(button.dataset.filter);
+        if (input.type === 'radio') {
+            document.getElementById('nearbyNone').checked = true;
+        } else {
+            input.checked = false;
         }
+        syncSelectAll();
+        applyCurrentFilters();
     });
 
     updateFilterBadges();
+    renderFilterChips();
+}
+
+function chipLabel(input) {
+    const label = input.closest('label');
+    return label.dataset.short || label.textContent.replace(/\(.*\)/, '').trim();
+}
+
+function renderFilterChips() {
+    const chips = FILTER_IDS
+        .map(id => document.getElementById(id))
+        .filter(input => input?.checked)
+        .map(input => ({ id: input.id, label: chipLabel(input) }));
+
+    const radius = document.querySelector('input[name="nearbyRadius"]:checked');
+    if (radius && radius.value !== 'none') {
+        chips.push({ id: radius.id, label: `Within ${chipLabel(radius)}` });
+    }
+
+    document.getElementById('filter-chips').innerHTML = chips.map(chip => `
+        <li class="filter-chip">${chip.label}
+            <button type="button" data-filter="${chip.id}" aria-label="Remove filter: ${chip.label}">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </li>`).join('');
+}
+
+async function applyCurrentFilters() {
+    updateFilterBadges();
+    renderFilterChips();
+    setLoading(true);
+    try {
+        const { lat, lon } = searchCenter;
+        const chargers = await getChargers(lat, lon, getActiveFilters());
+        addChargersToMap(chargers, [lon, lat]);
+        if (chargers.length === 0) {
+            showToast('No chargers match these filters nearby.', 'info');
+        }
+        const radius = getSelectedRadius();
+        if (radius === 'none') {
+            await removeNearbyCircle();
+        } else {
+            await updateNearbyCircle([lon, lat], radius);
+        }
+    } catch (error) {
+        window.reportError?.(error);
+        showToast("Couldn't update chargers. Please try again.", 'error');
+    } finally {
+        setLoading(false);
+    }
 }
 
 function setupSearchThisArea() {
