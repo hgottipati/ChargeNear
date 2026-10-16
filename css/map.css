@@ -324,6 +324,7 @@ html, body {
 }
 
 .walking-time-marker {
+    z-index: 2;
     padding: 4px 10px;
     font-size: 12px;
     font-weight: 600;
