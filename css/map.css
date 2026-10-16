@@ -622,6 +622,84 @@ html, body {
     white-space: pre-line;
 }
 
+[data-report-summary]:empty {
+    display: none;
+}
+
+.community-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    border-radius: var(--radius-sm);
+}
+
+.community-status i {
+    margin-top: 2px;
+}
+
+.community-status.is-good {
+    color: var(--success);
+    background: #f0fdf4;
+}
+
+.community-status.is-bad {
+    color: #b91c1c;
+    background: #fef2f2;
+}
+
+.report-box {
+    padding: 12px;
+    background: var(--surface-alt);
+    border-radius: var(--radius-sm);
+}
+
+.report-question {
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy);
+}
+
+.report-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.report-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip-button {
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--navy);
+    background: var(--surface);
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.chip-button:hover:not(:disabled) {
+    border-color: var(--navy);
+}
+
+.report-thanks {
+    margin: 0;
+    font-size: 14px;
+    color: var(--success);
+}
+
+.report-thanks.is-muted {
+    color: var(--muted);
+}
+
 .report-link {
     display: inline-flex;
     align-items: center;

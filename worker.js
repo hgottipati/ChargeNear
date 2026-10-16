@@ -122,6 +122,85 @@ async function handleCharger(url, env, ctx) {
     });
 }
 
+const REPORT_REASONS = ['not_there', 'broken', 'blocked', 'restricted', 'wrong_info'];
+const REPORT_WINDOW_DAYS = 90;
+const REPORTS_PER_DAY = 20;
+const CHARGER_ID_PATTERN = /^n?\d{1,10}$/;
+
+// A daily-rotating hash, so reports can be rate-limited without storing IP addresses.
+async function reporterId(request, env) {
+    const ip = request.headers.get('cf-connecting-ip') || 'local';
+    const day = new Date().toISOString().slice(0, 10);
+    const data = new TextEncoder().encode(`${ip}|${day}|${env.REPORT_SALT || 'chargenear'}`);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return [...new Uint8Array(digest)].slice(0, 12).map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function handleReport(request, env) {
+    if (request.method !== 'POST') return json({ error: 'POST only.' }, 405);
+
+    let body;
+    try {
+        body = JSON.parse((await request.text()).slice(0, 1000));
+    } catch {
+        return json({ error: 'Invalid report.' }, 400);
+    }
+    const chargerId = String(body.chargerId || '');
+    const outcome = body.outcome;
+    const reason = outcome === 'failed' && REPORT_REASONS.includes(body.reason) ? body.reason : null;
+    if (!CHARGER_ID_PATTERN.test(chargerId) || !['worked', 'failed'].includes(outcome)) {
+        return json({ error: 'Invalid report.' }, 400);
+    }
+
+    const reporter = await reporterId(request, env);
+    const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+    const { duplicate, today } = await env.DB.prepare(
+        `SELECT
+            SUM(CASE WHEN charger_id = ?1 AND created_at > ?2 THEN 1 ELSE 0 END) AS duplicate,
+            COUNT(*) AS today
+         FROM reports WHERE reporter = ?3`
+    ).bind(chargerId, since, reporter).first();
+    if (duplicate > 0) return json({ error: 'You already reported this charger recently. Thanks!' }, 429);
+    if (today >= REPORTS_PER_DAY) return json({ error: 'Too many reports today. Please try again tomorrow.' }, 429);
+
+    await env.DB.prepare(
+        'INSERT INTO reports (charger_id, outcome, reason, reporter, created_at) VALUES (?1, ?2, ?3, ?4, ?5)'
+    ).bind(chargerId, outcome, reason, reporter, new Date().toISOString()).run();
+
+    return json(await reportSummary(chargerId, env), 201);
+}
+
+async function reportSummary(chargerId, env) {
+    const since = new Date(Date.now() - REPORT_WINDOW_DAYS * 86400 * 1000).toISOString();
+    const row = await env.DB.prepare(
+        `SELECT
+            SUM(CASE WHEN outcome = 'worked' THEN 1 ELSE 0 END) AS worked,
+            SUM(CASE WHEN outcome = 'failed' THEN 1 ELSE 0 END) AS failed,
+            MAX(CASE WHEN outcome = 'worked' THEN created_at END) AS last_worked,
+            MAX(CASE WHEN outcome = 'failed' THEN created_at END) AS last_failed
+         FROM reports WHERE charger_id = ?1 AND created_at > ?2`
+    ).bind(chargerId, since).first();
+    const lastFailure = row.last_failed
+        ? await env.DB.prepare(
+            "SELECT reason FROM reports WHERE charger_id = ?1 AND outcome = 'failed' ORDER BY created_at DESC LIMIT 1"
+        ).bind(chargerId).first()
+        : null;
+
+    return {
+        worked: row.worked || 0,
+        failed: row.failed || 0,
+        lastWorked: row.last_worked,
+        lastFailed: row.last_failed,
+        lastFailedReason: lastFailure?.reason || null
+    };
+}
+
+async function handleReportSummary(url, env) {
+    const chargerId = url.searchParams.get('id') || '';
+    if (!CHARGER_ID_PATTERN.test(chargerId)) return json({ error: 'A valid id is required.' }, 400);
+    return json(await reportSummary(chargerId, env), 200, { 'cache-control': 'no-store' });
+}
+
 async function handleLog(request) {
     if (request.method !== 'POST') return json({ error: 'POST only.' }, 405);
     const body = (await request.text()).slice(0, 4000);
@@ -148,6 +227,8 @@ async function route(request, env, ctx) {
         case '/api/chargers': return handleChargers(url, env, ctx);
         case '/api/charger': return handleCharger(url, env, ctx);
         case '/api/log': return handleLog(request);
+        case '/api/report': return handleReport(request, env);
+        case '/api/reports': return handleReportSummary(url, env);
         default: return env.ASSETS.fetch(request);
     }
 }

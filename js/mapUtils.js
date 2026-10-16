@@ -2,6 +2,7 @@ import { locateUser } from './location.js';
 import { CustomPopup } from './customPopup.js';
 import { getSelectedRadius } from './filters.js';
 import { showToast } from './toast.js';
+import { setupReports } from './reports.js';
 
 let markers = new Map();
 export let currentLocationMarker = null;
@@ -379,6 +380,7 @@ function chargerCardHtml(charger) {
                 ${statusPill(charger.StatusType?.Title)}
             </div>
             ${freshnessNote(charger)}
+            <div data-report-summary aria-live="polite"></div>
             <dl class="charger-field">
                 <dt>Address</dt>
                 <dd>${escapeHtml(address || 'Not listed')}</dd>
@@ -403,6 +405,7 @@ function chargerCardHtml(charger) {
                     <i class="fa-solid fa-share-nodes"></i> Share
                 </button>
             </div>
+            <div class="report-box" data-report-box aria-live="polite"></div>
             <a class="report-link" href="${escapeHtml(source.reportUrl(charger))}" target="_blank" rel="noopener">
                 <i class="fa-regular fa-flag"></i> Not here or wrong info? ${escapeHtml(source.reportLabel)}
             </a>
@@ -436,6 +439,7 @@ export function openChargerDetails(charger) {
     currentPopup.setHTML(chargerCardHtml(charger));
     currentPopup.container.querySelector('[data-share-charger]')
         ?.addEventListener('click', () => shareCharger(charger));
+    setupReports(currentPopup.container, String(charger.ID));
     currentPopup.open();
 }
 
