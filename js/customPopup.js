@@ -22,7 +22,13 @@ export class CustomPopup {
         // Create the popup container
         this.container = document.createElement('div');
         this.container.className = 'custom-popup';
-        
+        this.container.setAttribute('role', 'dialog');
+        this.container.tabIndex = -1;
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && this.isOpen) this.close();
+        });
+
         // Add close button
         const closeButton = document.createElement('button');
         closeButton.type = 'button';
@@ -177,6 +183,8 @@ export class CustomPopup {
         }
         const content = this.container.querySelector('.custom-popup-content');
         content.innerHTML = html;
+        const heading = content.querySelector('h3');
+        this.container.setAttribute('aria-label', heading ? heading.textContent : 'Charger details');
     }
 
     open() {
@@ -184,9 +192,11 @@ export class CustomPopup {
             this.create();
         }
         this.applyStyle();
+        if (!this.isOpen) this.returnFocus = document.activeElement;
         this.isOpen = true;
         this.container.style.display = 'flex';
-        
+        this.container.querySelector('.custom-popup-close').focus({ preventScroll: true });
+
         if (this.isMobile) {
             this.overlay.style.display = 'block';
             // Force reflow
@@ -209,7 +219,9 @@ export class CustomPopup {
         if (!this.container) return;
         
         this.isOpen = false;
-        
+        if (this.returnFocus?.isConnected) this.returnFocus.focus({ preventScroll: true });
+        this.returnFocus = null;
+
         if (this.isMobile) {
             this.container.style.transform = 'translateY(100%)';
             this.overlay.style.opacity = '0';

@@ -198,6 +198,7 @@ export function addSearchedLocationMarker(lat, lon, label) {
             .setLngLat([lon, lat])
             .setPopup(new mapboxgl.Popup({ offset: 30 }).setHTML(`<strong>${escapeHtml(label)}</strong>`))
             .addTo(map);
+        searchedLocationMarker.getElement().setAttribute('aria-label', `Searched location: ${label}`);
     });
 }
 
@@ -431,8 +432,7 @@ async function shareCharger(charger) {
 }
 
 export function openChargerDetails(charger) {
-    if (currentPopup) currentPopup.close();
-    currentPopup = new CustomPopup();
+    currentPopup ||= new CustomPopup();
     currentPopup.setHTML(chargerCardHtml(charger));
     currentPopup.container.querySelector('[data-share-charger]')
         ?.addEventListener('click', () => shareCharger(charger));
@@ -467,10 +467,18 @@ function chargerMarker(map, charger, lngLat) {
     const el = marker.getElement();
     el.style.cursor = 'pointer';
     el.classList.toggle('is-stale', isStale(charger));
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
     el.setAttribute('aria-label', tidyName(charger.AddressInfo.Title) || 'EV charger');
     el.addEventListener('click', event => {
         event.stopPropagation();
         openChargerDetails(charger);
+    });
+    el.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openChargerDetails(charger);
+        }
     });
     return marker;
 }

@@ -82,13 +82,19 @@ function setupFilters() {
     const modal = document.getElementById('filter-modal');
     const panel = modal.querySelector('.filter-panel');
 
+    let opener = null;
     const open = () => {
+        opener = document.activeElement;
         syncSelectAll();
         updateFilterBadges();
         modal.classList.add('is-open');
         panel.querySelector('button')?.focus();
     };
-    const close = () => modal.classList.remove('is-open');
+    const close = () => {
+        modal.classList.remove('is-open');
+        if (opener?.isConnected) opener.focus({ preventScroll: true });
+        opener = null;
+    };
 
     document.addEventListener('chargenear:open-filters', open);
     document.addEventListener('chargenear:filters-changed', () => {
