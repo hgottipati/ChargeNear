@@ -39,7 +39,7 @@ Hotels and Airbnb hosts can embed this map on their websites to:
 - Allow guests to filter chargers based on their specific needs (e.g., Tesla Superchargers, high-power chargers).
 
 ## How to Embed on Your Website
-This tool is **free to use** and open-source! The easiest way is the embed builder at [chargenear.org/about.html#hosts](https://chargenear.org/about.html#hosts), which previews the map for your address and gives you the code to copy. Or embed it manually in two ways:
+This tool is **free to use** and open-source! The easiest way is the embed builder at [chargenear.org/about#hosts](https://chargenear.org/about#hosts), which previews the map for your address and gives you the code to copy. Or embed it manually in two ways:
 
 ### Option 1: Embed with a Specific Address
 Copy this iframe code into your website's HTML, replacing the address with your property's:
@@ -68,18 +68,26 @@ Copy this iframe code into your website's HTML:
 ```bash
 git clone https://github.com/hgottipati/ChargeNear.git
 ```
-2. Replace the Mapbox token in index.html with your own (get one at mapbox.com).
+2. Add your Mapbox public token (get one at mapbox.com) for local development. Both files are gitignored:
+```bash
+cp config.example.js config.js          # for python server.py
+echo "MAPBOX_TOKEN=pk.your-token" > .dev.vars   # for npx wrangler dev
+```
+   Restrict the token to your domains in your Mapbox account. In production, the Cloudflare Worker (`worker.js`) serves `/config.js` from the `MAPBOX_TOKEN` secret, so the token never lives in the repo.
 3. Install dependencies:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
-4. Run locally:
+4. Run locally, either with the simple Python server or with the same Worker setup as production:
 ```bash
-python3 -m http.server 8000
+python3 server.py        # http://localhost:8000
+npx wrangler dev         # http://localhost:8787 (uses .dev.vars)
 ```
-5. Visit http://localhost:8000.
+
+## Deployment
+Pushing to `main` deploys automatically through Cloudflare Workers (configured in `wrangler.jsonc`). Files listed in `.assetsignore` are not published.
 
 ## Demo
 * Production version: https://chargenear.org 
