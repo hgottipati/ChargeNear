@@ -60,8 +60,34 @@ Copy this iframe code into your website's HTML:
   - ?fastOnly=true to show only fast chargers
   - Example: https://chargenear.org?address=123+Main+St,+Austin,+TX&fastOnly=true
 
-### Architecture Diagram
-<img src="https://github.com/hgottipati/ChargeNear/blob/main/docs/chargenear_architecture.png" alt="ChargeNear Architecture" width="600">
+### Architecture
+```mermaid
+flowchart LR
+    browser["Browser<br/>index.html + js/"]
+    subgraph cf["Cloudflare Worker (worker.js)"]
+        assets["Static files"]
+        config["/config.js<br/>Mapbox token secret"]
+        api["/api/chargers, /api/charger<br/>merge + 10-min edge cache"]
+        log["/api/log<br/>client errors"]
+    end
+    doe["U.S. DOE station API<br/>developer.nlr.gov"]
+    ocm["Open Charge Map API"]
+    mapbox["Mapbox<br/>map tiles + address search"]
+    logs["Workers logs"]
+
+    browser --> assets
+    browser --> config
+    browser --> api
+    browser --> log
+    browser --> mapbox
+    api --> doe
+    api --> ocm
+    log --> logs
+```
+
+- **U.S. DOE** stations are the primary source in the U.S. and Canada; **Open Charge Map** adds community listings DOE doesn't have and covers the rest of the world (`stations.js` does the merge and removes duplicates).
+- API keys (`MAPBOX_TOKEN`, `OCM_API_KEY`, `NREL_API_KEY`) are Worker secrets, never in the repo.
+- Pushing to `main` deploys through Cloudflare Workers Builds.
 
 ## Setup for Developers
 1. Clone the repo:
