@@ -708,14 +708,15 @@ function mergeOverlappingChargers(items) {
 
 function layoutOverlays() {
     const bounds = document.getElementById('map').getBoundingClientRect();
-    const blockers = [...document.querySelectorAll(MAP_CHROME)]
+    const chrome = [...document.querySelectorAll(MAP_CHROME)]
         .map(el => el.getBoundingClientRect())
         .filter(rect => rect.width && rect.height);
+    const blockers = [...chrome];
     const items = [...markers.values()].map(marker => {
         const el = marker.getElement();
         el.style.visibility = '';
         const item = { marker, el, rect: el.getBoundingClientRect(), hidden: false };
-        if (!isClear(item.rect, blockers)) hideItem(item);
+        if (!isClear(item.rect, chrome)) hideItem(item);
         return item;
     });
 
@@ -725,6 +726,10 @@ function layoutOverlays() {
         el.style.visibility = '';
         const pin = el.querySelector('.property-pin') || el.querySelector('svg') || el;
         const pinRect = pin.getBoundingClientRect();
+        if (!isClear(pinRect, chrome)) {
+            el.style.visibility = 'hidden';
+            continue;
+        }
         if (anchor === searchedLocationMarker && propertyMarker && overlaps(pinRect,
             propertyMarker.getElement().querySelector('.property-pin').getBoundingClientRect())) {
             el.style.visibility = 'hidden';
@@ -741,7 +746,7 @@ function layoutOverlays() {
     mergeOverlappingChargers(items).forEach(item => blockers.push(item.el.getBoundingClientRect()));
 
     const label = propertyMarker?.getElement().querySelector('.property-label');
-    if (label) {
+    if (label && propertyMarker.getElement().style.visibility !== 'hidden') {
         label.style.visibility = '';
         const start = Math.max(0, LABEL_PLACES.indexOf(label.dataset.place));
         const placed = placeWithoutOverlap(LABEL_PLACES.length, start,
